@@ -9,6 +9,7 @@ from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 from datetime import datetime
 from PIL import Image
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -151,14 +152,32 @@ def process_bank_statement(file_path: str) -> pd.DataFrame:
     try:
         # Try pdfplumber first
         with pdfplumber.open(file_path) as pdf:
-            tables = []
+            all_tables = []
             for page in pdf.pages:
-                table = page.extract_table()
-                if table:
-                    tables.append(pd.DataFrame(table[1:], columns=table[0]))
+                # Extract tables with default settings first
+                tables = page.extract_tables()
+                if tables:
+                    for table in tables:
+                        if table and len(table) > 1:  # Ensure table has headers and data
+                            df = pd.DataFrame(table[1:], columns=table[0])
+                            all_tables.append(df)
+                else:
+                    # If no tables found, try with custom extraction settings
+                    tables = page.find_tables({
+                        "text_tolerance": 3,
+                        "text_x_tolerance": 3,
+                        "intersection_tolerance": 3,
+                        "snap_tolerance": 3,
+                        "join_tolerance": 3,
+                    })
+                    for table in tables:
+                        extracted = table.extract()
+                        if extracted and len(extracted) > 1:
+                            df = pd.DataFrame(extracted[1:], columns=extracted[0])
+                            all_tables.append(df)
             
-            if tables:
-                df = pd.concat(tables, ignore_index=True)
+            if all_tables:
+                df = pd.concat(all_tables, ignore_index=True)
                 logger.info(f"Successfully extracted table with pdfplumber: {df.shape}")
                 return clean_and_standardize_data(df)
         
@@ -166,43 +185,58 @@ def process_bank_statement(file_path: str) -> pd.DataFrame:
         doc = fitz.open(file_path)
         text_content = []
         for page in doc:
-            text_content.append(page.get_text())
+            text = page.get_text("dict")  # Get structured text
+            for block in text["blocks"]:
+                if block.get("lines"):
+                    for line in block["lines"]:
+                        if line.get("spans"):
+                            text_content.append(" ".join(span["text"] for span in line["spans"]))
         doc.close()
         
         # Try to parse the text content
-        lines = '\n'.join(text_content).split('\n')
         data = []
         current_entry = {}
         
-        for line in lines:
+        for line in text_content:
             line = line.strip()
             if not line:
                 continue
             
             # Try to identify date
-            date_match = re.search(r'\d{2}[-/]\d{2}[-/]\d{2,4}', line)
+            date_match = re.search(r'\d{2}[-/\.]\d{2}[-/\.]\d{2,4}', line)
             if date_match:
-                if current_entry:
+                if current_entry and len(current_entry) >= 2:  # Only add if we have at least date and amount
                     data.append(current_entry)
                 current_entry = {'date': date_match.group()}
+                
+                # Try to find amount and description in the same line
+                amount = extract_amount(line)
+                if amount is not None:
+                    current_entry['amount'] = amount
+                    # Use the rest as description
+                    desc = line.replace(date_match.group(), '').strip()
+                    if desc:
+                        current_entry['description'] = desc
                 continue
             
-            # Try to identify amount
-            amount = extract_amount(line)
-            if amount is not None:
-                current_entry['amount'] = amount
-                # Use the rest of the line as description
-                desc = line.replace(str(amount), '').strip()
-                if desc:
-                    current_entry['description'] = desc
-                continue
+            # Try to identify amount if we haven't found it yet
+            if 'amount' not in current_entry:
+                amount = extract_amount(line)
+                if amount is not None:
+                    current_entry['amount'] = amount
+                    # Use the rest as description if we don't have one
+                    if 'description' not in current_entry:
+                        desc = re.sub(r'[\d,\.]+', '', line).strip()
+                        if desc:
+                            current_entry['description'] = desc
+                    continue
             
-            # If no amount found, treat as description
-            if 'description' not in current_entry:
+            # If we have date but no description, use this line as description
+            if 'date' in current_entry and 'description' not in current_entry:
                 current_entry['description'] = line
         
-        # Add the last entry
-        if current_entry:
+        # Add the last entry if it has required fields
+        if current_entry and len(current_entry) >= 2:
             data.append(current_entry)
         
         if data:
@@ -215,6 +249,7 @@ def process_bank_statement(file_path: str) -> pd.DataFrame:
         
     except Exception as e:
         logger.error(f"Error processing bank statement: {str(e)}")
+        logger.error(traceback.format_exc())
         raise
 
 def clean_and_standardize_data(df: pd.DataFrame) -> pd.DataFrame:

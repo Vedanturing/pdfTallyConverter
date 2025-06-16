@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, HTTPException, File, Request
+from fastapi import FastAPI, UploadFile, HTTPException, File, Request, Query, Body
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -31,6 +31,8 @@ from pathlib import Path
 import re
 from validation_utils import validate_table_data, get_validation_summary, validate_financial_data, ValidationError
 from bank_statement_parser import process_bank_statement, validate_numeric_fields
+from bank_matcher import BankMatcher
+from gst_helper import GSTHelper
 
 # Configure logging
 logging.basicConfig(
@@ -134,6 +136,12 @@ os.makedirs(CONVERTED_DIR, exist_ok=True)
 # Initialize process pool for CPU-intensive tasks
 process_pool = ProcessPoolExecutor()
 
+# Initialize bank matcher
+bank_matcher = BankMatcher()
+
+# Initialize GST helper
+gst_helper = GSTHelper()
+
 class ConversionError(Exception):
     pass
 
@@ -192,10 +200,91 @@ async def save_upload_file(upload_file: UploadFile) -> tuple[str, str]:
         raise HTTPException(status_code=500, detail=str(e))
 
 def extract_tables_from_pdf(file_path: str) -> pd.DataFrame:
-    """Extract tables from PDF using enhanced bank statement parser"""
+    """Extract tables from PDF using pdfplumber with fallback to bank statement parser"""
     logger.info(f"Extracting tables from PDF: {file_path}")
     try:
-        # Process as bank statement
+        # Try general table extraction first
+        with pdfplumber.open(file_path) as pdf:
+            all_tables = []
+            for page_num, page in enumerate(pdf.pages, 1):
+                # Try with default settings first
+                tables = page.extract_tables()
+                if tables:
+                    all_tables.extend(tables)
+                else:
+                    # If no tables found, try with custom settings
+                    tables = page.find_tables({
+                        "vertical_strategy": "text",
+                        "horizontal_strategy": "text",
+                        "text_tolerance": 3,
+                        "text_x_tolerance": 3,
+                        "intersection_tolerance": 3,
+                        "snap_tolerance": 3,
+                        "join_tolerance": 3,
+                    }).extract()
+                    if tables:
+                        all_tables.extend(tables)
+            
+            if all_tables:
+                # Use the first table's headers
+                headers = all_tables[0][0]
+                # Combine all rows from all tables
+                rows = []
+                for table in all_tables:
+                    rows.extend(table[1:])  # Skip header row for subsequent tables
+                
+                df = pd.DataFrame(rows, columns=headers)
+                df = df.fillna('')  # Replace NaN with empty string
+                
+                # Try to detect if this is tabular data
+                if len(df.columns) >= 3 and len(df) > 0:
+                    # Standardize column names
+                    column_mapping = {
+                        col: col.lower().replace(' ', '_') 
+                        for col in df.columns
+                    }
+                    df = df.rename(columns=column_mapping)
+                    
+                    # Ensure required columns exist
+                    required_columns = {
+                        'date': ['date', 'tran_date', 'transaction_date', 'value_date'],
+                        'narration': ['narration', 'description', 'particulars', 'details'],
+                        'amount': ['amount', 'debit', 'credit', 'dr', 'cr'],
+                        'balance': ['balance', 'running_balance', 'closing_balance']
+                    }
+                    
+                    # Map existing columns to standard names
+                    for std_col, variants in required_columns.items():
+                        if std_col not in df.columns:
+                            # Find first matching variant
+                            for var in variants:
+                                if var in df.columns:
+                                    df = df.rename(columns={var: std_col})
+                                    break
+                            # If no variant found, add empty column
+                            if std_col not in df.columns:
+                                df[std_col] = ''
+                    
+                    # Clean up date column
+                    if 'date' in df.columns:
+                        df['date'] = pd.to_datetime(df['date'], format='mixed', errors='coerce')
+                        df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+                    
+                    # Clean up amount columns
+                    if 'amount' in df.columns:
+                        df['amount'] = df['amount'].apply(lambda x: str(x).replace('₹', '').replace(',', '').strip())
+                        df['amount'] = pd.to_numeric(df['amount'], errors='coerce').fillna(0)
+                    
+                    # Clean up balance column
+                    if 'balance' in df.columns:
+                        df['balance'] = df['balance'].apply(lambda x: str(x).replace('₹', '').replace(',', '').strip())
+                        df['balance'] = pd.to_numeric(df['balance'], errors='coerce').fillna(0)
+                    
+                    return df
+        
+        # If general table extraction fails or doesn't look like tabular data,
+        # try processing as bank statement
+        logger.info("General table extraction failed or invalid, trying bank statement parser...")
         df = process_bank_statement(file_path)
         
         if not df.empty:
@@ -210,39 +299,29 @@ def extract_tables_from_pdf(file_path: str) -> pd.DataFrame:
             df = df.fillna('')  # Replace NaN with empty string
             
             # Ensure required columns exist
-            required_columns = ['date', 'description', 'debit', 'credit', 'balance']
+            required_columns = ['date', 'narration', 'amount', 'balance']
             for col in required_columns:
                 if col not in df.columns:
                     df[col] = ''
             
             # Format numeric columns
-            for col in ['debit', 'credit', 'balance']:
+            for col in ['amount', 'balance']:
                 if col in df.columns:
                     df[col] = df[col].apply(lambda x: '{:.2f}'.format(float(x)) if x != '' else '')
             
             # Format date column
             if 'date' in df.columns and df['date'].any():
-                df['date'] = pd.to_datetime(df['date']).dt.strftime('%d-%m-%Y')
+                df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
             
             return df
         
-        # If bank statement parsing fails, fall back to existing table extraction
-        logger.info("Bank statement parsing failed, falling back to default table extraction")
-        with pdfplumber.open(file_path) as pdf:
-            all_tables = []
-            for page_num, page in enumerate(pdf.pages, 1):
-                tables = page.extract_tables()
-                if tables:
-                    all_tables.extend(tables)
-            
-            if all_tables:
-                df = pd.DataFrame(all_tables[0][1:], columns=all_tables[0][0])
-                return df
-            
-            return pd.DataFrame()
+        # If both methods fail, return empty DataFrame
+        logger.warning("Both table extraction methods failed")
+        return pd.DataFrame()
             
     except Exception as e:
         logger.error(f"Error in table extraction: {str(e)}")
+        logger.error(traceback.format_exc())
         return pd.DataFrame()
 
 def process_image_ocr(file_path: str) -> pd.DataFrame:
@@ -424,14 +503,14 @@ async def convert_uploaded_file(file_id: str):
             if original_file.lower().endswith('.pdf'):
                 logger.info("Processing PDF file")
                 df = extract_tables_from_pdf(original_file)
-            elif original_file.lower().endswith('.xlsx'):
-                logger.info("Reading Excel file")
-                df = pd.read_excel(original_file)
-            elif original_file.lower().endswith('.csv'):
-                logger.info("Reading CSV file")
-                df = pd.read_csv(original_file)
+            elif original_file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                logger.info("Processing image file")
+                df = process_image_ocr(original_file)
             else:
                 raise ValueError(f"Unsupported file format: {original_file}")
+
+            if df.empty:
+                raise ValueError("No data could be extracted from the file")
 
             # Convert DataFrame to dictionary format while preserving numeric types
             headers = df.columns.tolist()
@@ -445,23 +524,39 @@ async def convert_uploaded_file(file_id: str):
                         row_dict[col] = None
                     elif isinstance(value, (np.integer, np.floating)):
                         row_dict[col] = float(value) if isinstance(value, np.floating) else int(value)
+                    elif isinstance(value, pd.Timestamp):
+                        row_dict[col] = value.strftime('%Y-%m-%d')
                     else:
                         row_dict[col] = str(value)
                 rows.append(row_dict)
 
-            data = {
-                'headers': headers,
-                'rows': rows
+            # Create output directory
+            os.makedirs(CONVERTED_DIR, exist_ok=True)
+
+            # Save as JSON for future use
+            json_data = {
+                "headers": headers,
+                "rows": rows
             }
+            json_path = os.path.join(CONVERTED_DIR, f"{file_id}.json")
+            with open(json_path, 'w') as f:
+                json.dump(json_data, f)
             
-            logger.info(f"Successfully converted file. Data shape: {df.shape}")
-            return data
+            # Also save as Excel for compatibility
+            excel_path = os.path.join(CONVERTED_DIR, f"{file_id}.xlsx")
+            df.to_excel(excel_path, index=False, engine='openpyxl')
+            
+            return JSONResponse({
+                "success": True,
+                "message": "File converted successfully",
+                "data": json_data
+            })
 
         except Exception as e:
             logger.error(f"Error converting file: {str(e)}")
             logger.error(traceback.format_exc())
             raise HTTPException(
-                status_code=500,
+                status_code=422,
                 detail=f"Error converting file: {str(e)}"
             )
 
@@ -481,11 +576,23 @@ async def convert_to_format(file_id: str, format: str):
     try:
         logger.info(f"Starting format conversion for file_id: {file_id} to {format}")
         
-        # First convert the file to get the data
-        data = await convert_uploaded_file(file_id)
+        # Check if we have already converted data
+        converted_file = os.path.join(CONVERTED_DIR, f"{file_id}.json")
+        if not os.path.exists(converted_file):
+            # If not, we need to convert first
+            data = await convert_uploaded_file(file_id)
+        else:
+            # Use existing converted data
+            with open(converted_file, 'r') as f:
+                data = json.load(f)
         
         # Create DataFrame from the data
-        df = pd.DataFrame(data['rows'])
+        if 'data' in data and 'rows' in data['data']:
+            df = pd.DataFrame(data['data']['rows'])
+        elif 'rows' in data:
+            df = pd.DataFrame(data['rows'])
+        else:
+            raise ValueError("Invalid data format")
         
         # Create output filename
         output_filename = f"{file_id}.{format}"
@@ -497,7 +604,7 @@ async def convert_to_format(file_id: str, format: str):
         try:
             # Convert to the requested format
             if format == "xlsx":
-                df.to_excel(output_path, index=False)
+                df.to_excel(output_path, index=False, engine='openpyxl')
                 media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             elif format == "csv":
                 df.to_csv(output_path, index=False)
@@ -1036,6 +1143,7 @@ async def convert_to_format(fileId: str, format: str):
 
 @app.get("/get-data/{file_id}")
 async def get_data(file_id: str):
+    """Get data from a file, converting it if necessary"""
     try:
         # Check if converted data exists
         converted_file = os.path.join(CONVERTED_DIR, f"{file_id}.json")
@@ -1044,10 +1152,9 @@ async def get_data(file_id: str):
         if not os.path.exists(converted_file):
             # Find the original file
             original_file = None
-            for ext in ['.pdf', '.png', '.jpg', '.jpeg']:
-                file_path = os.path.join(UPLOAD_DIR, f"{file_id}{ext}")
-                if os.path.exists(file_path):
-                    original_file = file_path
+            for filename in os.listdir(UPLOAD_DIR):
+                if filename.startswith(file_id):
+                    original_file = os.path.join(UPLOAD_DIR, filename)
                     break
             
             if not original_file:
@@ -1055,12 +1162,39 @@ async def get_data(file_id: str):
 
             # Convert the file based on its type
             try:
+                logger.info(f"Converting file: {original_file}")
                 if original_file.lower().endswith('.pdf'):
-                    df = extract_tables_from_pdf(original_file)
+                    # Try extract_tables_from_pdf first
+                    try:
+                        df = extract_tables_from_pdf(original_file)
+                    except Exception as e:
+                        logger.warning(f"Failed to extract tables using extract_tables_from_pdf: {str(e)}")
+                        logger.info("Attempting to process as bank statement...")
+                        # If that fails, try process_bank_statement as fallback
+                        df = process_bank_statement(original_file)
                 elif original_file.lower().endswith(('.png', '.jpg', '.jpeg')):
                     df = process_image_ocr(original_file)
                 else:
                     raise ValueError(f"Unsupported file format: {original_file}")
+
+                if df.empty:
+                    raise ValueError("No data could be extracted from the file")
+
+                # Clean up the DataFrame
+                # Convert date columns to string format
+                date_columns = df.select_dtypes(include=['datetime64']).columns
+                for col in date_columns:
+                    df[col] = df[col].dt.strftime('%Y-%m-%d')
+
+                # Convert numeric columns to float
+                numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+                for col in numeric_columns:
+                    df[col] = df[col].astype(float)
+
+                # Convert all other columns to string
+                object_columns = df.select_dtypes(include=['object']).columns
+                for col in object_columns:
+                    df[col] = df[col].fillna('').astype(str)
 
                 # Convert DataFrame to dictionary format
                 data = {
@@ -1073,21 +1207,31 @@ async def get_data(file_id: str):
                 with open(converted_file, 'w') as f:
                     json.dump(data, f)
                 
+                logger.info(f"Successfully converted file. Data shape: {df.shape}")
                 return data
 
             except Exception as e:
                 logger.error(f"Error converting file: {str(e)}")
                 logger.error(traceback.format_exc())
                 raise HTTPException(
-                    status_code=500,
+                    status_code=422,
                     detail=f"Error converting file: {str(e)}"
                 )
         
         # Read the existing converted data
-        with open(converted_file, 'r') as f:
-            data = json.load(f)
-        
-        return data
+        try:
+            with open(converted_file, 'r') as f:
+                data = json.load(f)
+            return data
+        except json.JSONDecodeError as e:
+            logger.error(f"Error reading converted data: {str(e)}")
+            # If the JSON file is corrupted, delete it and raise an error
+            os.remove(converted_file)
+            raise HTTPException(
+                status_code=500,
+                detail="Corrupted conversion data. Please try converting again."
+            )
+            
     except HTTPException:
         raise
     except Exception as e:
@@ -1152,9 +1296,51 @@ async def validate_data(file_id: str, request: Request):
         
         if not data:
             raise HTTPException(status_code=400, detail="No data provided for validation")
-            
+        
         # Convert the data to a pandas DataFrame for validation
-        df = pd.DataFrame(data)
+        try:
+            # Try to get data from the request body
+            if isinstance(data, list):
+                df = pd.DataFrame(data)
+            elif isinstance(data, dict) and 'data' in data:
+                df = pd.DataFrame(data['data'])
+            else:
+                df = pd.DataFrame([data])
+        except Exception as e:
+            logger.error(f"Error converting data to DataFrame: {str(e)}")
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid data format: {str(e)}"
+            )
+        
+        # Ensure required columns exist
+        required_columns = ['date', 'narration', 'amount', 'balance']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Missing required columns: {', '.join(missing_columns)}"
+            )
+        
+        # Clean up data types
+        try:
+            # Convert date column
+            df['date'] = pd.to_datetime(df['date'], format='mixed', errors='coerce')
+            
+            # Convert numeric columns
+            for col in ['amount', 'balance']:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col].astype(str).str.replace('₹', '').str.replace(',', ''), errors='coerce')
+            
+            # Fill NaN values
+            df = df.fillna('')
+            
+        except Exception as e:
+            logger.error(f"Error cleaning data: {str(e)}")
+            raise HTTPException(
+                status_code=422,
+                detail=f"Error cleaning data: {str(e)}"
+            )
         
         # Perform validation checks
         validation_results = validate_numeric_fields(df)
@@ -1163,6 +1349,16 @@ async def validate_data(file_id: str, request: Request):
         # Get validation summary
         summary = get_validation_summary(validation_results, financial_validation)
         
+        # Save validated data
+        try:
+            os.makedirs("corrected", exist_ok=True)
+            validated_path = os.path.join("corrected", f"{file_id}_validated.json")
+            df.to_json(validated_path, orient='records', date_format='iso')
+        except Exception as e:
+            logger.error(f"Error saving validated data: {str(e)}")
+            # Don't fail the validation if saving fails
+            pass
+        
         return {
             "status": "success",
             "validation_results": validation_results,
@@ -1170,6 +1366,8 @@ async def validate_data(file_id: str, request: Request):
             "summary": summary
         }
         
+    except HTTPException:
+        raise
     except ValidationError as e:
         logger.error(f"Validation error: {str(e)}")
         return JSONResponse(
@@ -1181,7 +1379,7 @@ async def validate_data(file_id: str, request: Request):
         logger.error(traceback.format_exc())
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "detail": "Internal server error during validation"}
+            content={"status": "error", "detail": str(e)}
         )
 
 @app.post("/export/{file_id}/{format}")
@@ -1328,6 +1526,227 @@ def cleanup_old_exports(export_dir: str, max_age_days: int = 7):
                 logging.info(f"Cleaned up old export: {file}")
     except Exception as e:
         logging.error(f"Error cleaning up exports: {str(e)}")
+
+@app.post("/bank-statement/upload")
+async def upload_bank_statement(file: UploadFile = File(...)):
+    """Upload and process a bank statement"""
+    try:
+        file_path, file_id = await save_upload_file(file)
+        
+        # Process the bank statement
+        transactions = bank_matcher.load_bank_statement(file_path)
+        
+        return {
+            "success": True,
+            "message": "Bank statement processed successfully",
+            "transaction_count": len(transactions)
+        }
+    except Exception as e:
+        logger.error(f"Error processing bank statement: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing bank statement: {str(e)}"
+        )
+
+@app.post("/invoice-data/upload")
+async def upload_invoice_data(file: UploadFile = File(...)):
+    """Upload and process invoice data"""
+    try:
+        file_path, file_id = await save_upload_file(file)
+        
+        # Process the invoice data based on file type
+        if file_path.lower().endswith('.pdf'):
+            df = process_bank_statement(file_path)  # Reuse bank statement parser
+        else:
+            df = pd.read_csv(file_path)
+        
+        # Convert DataFrame to list of dictionaries
+        invoice_data = df.to_dict('records')
+        
+        # Load into bank matcher
+        transactions = bank_matcher.load_invoice_data(invoice_data)
+        
+        return {
+            "success": True,
+            "message": "Invoice data processed successfully",
+            "transaction_count": len(transactions)
+        }
+    except Exception as e:
+        logger.error(f"Error processing invoice data: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing invoice data: {str(e)}"
+        )
+
+@app.post("/bank-matcher/match")
+async def match_transactions(
+    date_tolerance_days: int = Query(5, description="Number of days to consider for matching dates"),
+    amount_tolerance: float = Query(0.01, description="Amount difference tolerance for matching")
+):
+    """Find matches between bank transactions and invoices"""
+    try:
+        matches = bank_matcher.find_matches(
+            date_tolerance_days=date_tolerance_days,
+            amount_tolerance=amount_tolerance
+        )
+        
+        unmatched = bank_matcher.get_unmatched_transactions()
+        
+        return {
+            "success": True,
+            "matches": matches,
+            "unmatched": unmatched,
+            "match_count": len(matches)
+        }
+    except Exception as e:
+        logger.error(f"Error matching transactions: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error matching transactions: {str(e)}"
+        )
+
+@app.post("/bank-matcher/update-status")
+async def update_match_status(
+    match_id: str = Body(..., embed=True),
+    status: str = Body(..., embed=True)
+):
+    """Update the status of a match"""
+    try:
+        success = bank_matcher.update_match_status(match_id, status)
+        if not success:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Match with ID {match_id} not found"
+            )
+        
+        return {
+            "success": True,
+            "message": f"Match status updated to {status}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating match status: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating match status: {str(e)}"
+        )
+
+@app.post("/gst/add-invoice")
+async def add_gst_invoice(invoice_data: Dict[str, Any]):
+    """Add an invoice for GST processing"""
+    try:
+        invoice = gst_helper.add_invoice(invoice_data)
+        return {
+            "success": True,
+            "message": "Invoice added successfully",
+            "invoice": {
+                "invoice_no": invoice.invoice_no,
+                "total_amount": invoice.total_amount,
+                "gst_details": {
+                    "taxable_value": invoice.taxable_value,
+                    "igst": invoice.igst,
+                    "cgst": invoice.cgst,
+                    "sgst": invoice.sgst
+                }
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error adding GST invoice: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error adding GST invoice: {str(e)}"
+        )
+
+@app.post("/gst/generate-gstr1")
+async def generate_gstr1(period: str = Body(..., embed=True)):
+    """Generate GSTR-1 format JSON"""
+    try:
+        gstr1_data = gst_helper.generate_gstr1_json(period)
+        
+        # Save to file
+        file_path = os.path.join(EXPORT_DIR, f"GSTR1_{period}.json")
+        with open(file_path, 'w') as f:
+            json.dump(gstr1_data, f, indent=2)
+        
+        return FileResponse(
+            file_path,
+            media_type='application/json',
+            filename=f"GSTR1_{period}.json"
+        )
+    except Exception as e:
+        logger.error(f"Error generating GSTR-1: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating GSTR-1: {str(e)}"
+        )
+
+@app.post("/gst/generate-gstr3b")
+async def generate_gstr3b(period: str = Body(..., embed=True)):
+    """Generate GSTR-3B format JSON"""
+    try:
+        gstr3b_data = gst_helper.generate_gstr3b_json(period)
+        
+        # Save to file
+        file_path = os.path.join(EXPORT_DIR, f"GSTR3B_{period}.json")
+        with open(file_path, 'w') as f:
+            json.dump(gstr3b_data, f, indent=2)
+        
+        return FileResponse(
+            file_path,
+            media_type='application/json',
+            filename=f"GSTR3B_{period}.json"
+        )
+    except Exception as e:
+        logger.error(f"Error generating GSTR-3B: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating GSTR-3B: {str(e)}"
+        )
+
+@app.post("/gst/generate-excel")
+async def generate_gst_excel(period: str = Body(..., embed=True)):
+    """Generate GST Excel report"""
+    try:
+        file_path = os.path.join(EXPORT_DIR, f"GST_Report_{period}.xlsx")
+        gst_helper.generate_excel_report(file_path)
+        
+        return FileResponse(
+            file_path,
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            filename=f"GST_Report_{period}.xlsx"
+        )
+    except Exception as e:
+        logger.error(f"Error generating GST Excel report: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating GST Excel report: {str(e)}"
+        )
+
+@app.post("/gst/validate-gstin")
+async def validate_gstin(gstin: str = Body(..., embed=True)):
+    """Validate GSTIN format"""
+    try:
+        is_valid = gst_helper.validate_gstin(gstin)
+        return {
+            "success": True,
+            "is_valid": is_valid
+        }
+    except Exception as e:
+        logger.error(f"Error validating GSTIN: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error validating GSTIN: {str(e)}"
+        )
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

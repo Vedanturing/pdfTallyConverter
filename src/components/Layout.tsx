@@ -2,6 +2,26 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Settings, HelpCircle, Moon, Sun } from 'lucide-react';
 import { Button } from './ui/button';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  DocumentTextIcon,
+  DocumentMagnifyingGlassIcon,
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ArrowDownTrayIcon,
+  BanknotesIcon,
+  CalculatorIcon,
+} from '@heroicons/react/24/outline';
+
+const navigation = [
+  { name: 'Upload', href: '/', icon: DocumentTextIcon },
+  { name: 'Preview', href: '/preview', icon: DocumentMagnifyingGlassIcon },
+  { name: 'Convert', href: '/convert', icon: ArrowPathIcon },
+  { name: 'Validate', href: '/validate', icon: CheckCircleIcon },
+  { name: 'Export', href: '/export', icon: ArrowDownTrayIcon },
+  { name: 'Bank Matcher', href: '/bank-matcher', icon: BanknotesIcon },
+  { name: 'GST Helper', href: '/gst-helper', icon: CalculatorIcon },
+];
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +30,8 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }) => {
+  const location = useLocation();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
@@ -65,6 +87,36 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
+          <nav className="bg-white shadow-sm">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="flex h-16 justify-between">
+                <div className="flex">
+                  <div className="flex flex-shrink-0 items-center">
+                    <h1 className="text-xl font-semibold text-gray-900">PDF Tally Converter</h1>
+                  </div>
+                  <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                    {navigation.map((item) => {
+                      const isActive = location.pathname === item.href;
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${
+                            isActive
+                              ? 'border-b-2 border-indigo-500 text-gray-900'
+                              : 'border-b-2 border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                          }`}
+                        >
+                          <item.icon className="h-5 w-5 mr-1" />
+                          {item.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </nav>
           {children}
         </motion.div>
       </main>
@@ -77,4 +129,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }
       </footer>
     </div>
   );
-}; 
+};
+
+export default Layout; 

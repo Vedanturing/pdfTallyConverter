@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import PDFConverter from './components/PDFConverter';
 import FileUpload from './components/FileUpload';
@@ -18,6 +18,8 @@ import {
   CheckCircleIcon,
   ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
+import BankMatcher from './components/BankMatcher';
+import GSTHelper from './components/GSTHelper';
 
 const steps = [
   { title: 'Upload', icon: DocumentArrowUpIcon },
@@ -135,6 +137,18 @@ function AppContent() {
               path="/export" 
               element={
                 <ExportComponent />
+              } 
+            />
+            <Route 
+              path="/bank-matcher" 
+              element={
+                <BankMatcher />
+              } 
+            />
+            <Route 
+              path="/gst-helper" 
+              element={
+                <GSTHelper />
               } 
             />
           </Routes>

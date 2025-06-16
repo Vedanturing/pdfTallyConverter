@@ -170,32 +170,37 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
   const convertFile = async (fileId: string, conversionToast?: string) => {
     setConversionLoading(true);
     try {
-      console.log('Converting file with ID:', fileId);
-      const response = await axios.post<ConversionResponse>(`${API_URL}/convert/${fileId}`);
-      console.log('Conversion response:', response.data);
+      // First, try to get the data
+      const response = await axios.get(`${API_URL}/get-data/${fileId}`);
       
-      if (response.data.rows) {
-        // Convert the rows to the expected format
-        const convertedRows = response.data.rows.map((row: any, index: number) => ({
+      if (response.data && (response.data.rows || response.data.data?.rows)) {
+        const rows = response.data.rows || response.data.data.rows;
+        
+        // Convert the data to our format
+        const convertedRows = rows.map((row: any, index: number) => ({
           id: `row-${index}`,
-          date: row.DATE || row.date || '',
-          voucherNo: row['VOUCHER NO'] || row.voucherNo || '',
-          ledgerName: row['LEDGER NAME'] || row.ledgerName || '',
-          amount: parseFloat(String(row.AMOUNT || row.amount || '0').replace(/[^\d.-]/g, '')) || 0,
-          narration: row.NARRATION || row.narration || '',
-          balance: parseFloat(String(row.BALANCE || row.balance || '0').replace(/[^\d.-]/g, '')) || 0
+          date: row.date || row.DATE || '',
+          voucherNo: row.voucherNo || row['VOUCHER NO'] || row.voucher_no || '',
+          ledgerName: row.ledgerName || row['LEDGER NAME'] || row.ledger_name || '',
+          amount: typeof row.amount === 'number' ? row.amount : 
+                 typeof row.AMOUNT === 'number' ? row.AMOUNT :
+                 parseFloat(String(row.amount || row.AMOUNT || '0').replace(/[^\d.-]/g, '')) || 0,
+          narration: row.narration || row.NARRATION || row.description || '',
+          balance: typeof row.balance === 'number' ? row.balance :
+                  typeof row.BALANCE === 'number' ? row.BALANCE :
+                  parseFloat(String(row.balance || row.BALANCE || '0').replace(/[^\d.-]/g, '')) || 0
         }));
 
         setConvertedData(convertedRows);
         setActiveTab('table');
+        
+        if (conversionToast) {
+          toast.success('Document converted successfully', {
+            id: conversionToast
+          });
+        }
       } else {
         throw new Error('No data received from conversion');
-      }
-      
-      if (conversionToast) {
-        toast.success('Document converted successfully', {
-          id: conversionToast
-        });
       }
     } catch (error: any) {
       console.error('Error converting file:', error);
@@ -208,6 +213,7 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
       } else {
         toast.error(errorMessage);
       }
+      throw error; // Re-throw to handle in the calling function
     } finally {
       setConversionLoading(false);
     }

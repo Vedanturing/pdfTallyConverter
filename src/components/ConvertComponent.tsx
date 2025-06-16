@@ -92,26 +92,24 @@ const ConvertComponent: React.FC = () => {
     
     try {
       // First, ensure the file is converted
-      const convertResponse = await axios.post(`${API_URL}/convert/${currentFile.id}`, {
-        format
-      });
+      const convertResponse = await axios.post(`${API_URL}/convert/${currentFile.id}`);
 
       if (!convertResponse.data?.success) {
-        throw new Error('Conversion failed');
+        throw new Error(convertResponse.data?.message || 'Conversion failed');
       }
 
       // Then download the converted file
-      const response = await axios.get(`${API_URL}/convert/${currentFile.id}/${format}`, {
+      const downloadResponse = await axios.get(`${API_URL}/api/convert/${currentFile.id}/${format}`, {
         responseType: 'blob'
       });
 
-      if (!response.data || response.data.size === 0) {
+      if (!downloadResponse.data || downloadResponse.data.size === 0) {
         throw new Error('Received empty response from server');
       }
 
       setConvertedFormats(prev => new Set([...prev, format]));
       
-      const blob = new Blob([response.data], { 
+      const blob = new Blob([downloadResponse.data], { 
         type: format === 'xlsx' 
           ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           : format === 'csv'
@@ -127,6 +125,11 @@ const ConvertComponent: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+
+      // Update table data if available
+      if (convertResponse.data?.data?.rows) {
+        setTableData(convertResponse.data.data.rows);
+      }
 
       toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
     } catch (error: any) {
