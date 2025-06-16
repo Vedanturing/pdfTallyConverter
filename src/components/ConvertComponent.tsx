@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import WorkflowStepper from './WorkflowStepper';
 import { useWorkflowStore } from '../store/useWorkflowStore';
+import { Button, Box, Typography, CircularProgress } from '@mui/material';
 
 interface ConversionStatus {
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -54,149 +55,80 @@ const EXPORT_FORMATS: ExportFormat[] = [
 ];
 
 const ConvertComponent: React.FC = () => {
-  const [files, setFiles] = useState<any[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [currentFile, setCurrentFile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [conversionStatus, setConversionStatus] = useState<ConversionStatus>({
-    status: 'pending'
-  });
-  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const [converting, setConverting] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const [convertedFormats, setConvertedFormats] = useState<Set<string>>(new Set());
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { setStep } = useWorkflowStore();
-
-  const availableFormats = [
-    { id: 'xlsx', name: 'Excel (XLSX)', icon: '📊', description: 'Best for data analysis and calculations' },
-    { id: 'csv', name: 'CSV', icon: '📝', description: 'Simple format for data interchange' },
-    { id: 'xml', name: 'XML', icon: '🔧', description: 'Structured format for system integration' }
-  ];
 
   useEffect(() => {
-    fetchFiles();
-    const state = location.state as { fileId?: string };
+    const state = location.state as { fileId?: string, fileName?: string };
     if (!state?.fileId) {
       toast.error('No file selected');
       navigate('/', { replace: true });
-    }
-  }, [location.state, navigate]);
-
-  const fetchFiles = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/files`);
-      setFiles(response.data.files);
-    } catch (error) {
-      console.error('Error fetching files:', error);
-      toast.error('Failed to load files');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleFormat = (formatId: string) => {
-    setSelectedFormats(prev =>
-      prev.includes(formatId)
-        ? prev.filter(f => f !== formatId)
-        : [...prev, formatId]
-    );
-  };
-
-  const handleConvert = async () => {
-    if (!selectedFile || selectedFormats.length === 0) {
-      toast.error('Please select a file and at least one format');
       return;
     }
+    
+    setCurrentFile({
+      id: state.fileId,
+      name: state.fileName || 'Uploaded File',
+      uploadedAt: new Date().toISOString()
+    });
 
-    setConversionStatus({ status: 'processing', progress: 0 });
-
-    try {
-      // Start conversion
-      const response = await axios.post(`${API_URL}/convert`, {
-        fileId: selectedFile,
-        formats: selectedFormats
-      });
-
-      // Poll for conversion status
-      const statusInterval = setInterval(async () => {
-        try {
-          const statusResponse = await axios.get(
-            `${API_URL}/conversion-status/${response.data.conversionId}`
-          );
-
-          const { status, progress } = statusResponse.data;
-
-          setConversionStatus({
-            status,
-            progress: progress || 0
-          });
-
-          if (status === 'completed' || status === 'failed') {
-            clearInterval(statusInterval);
-            
-            if (status === 'completed') {
-              toast.success('Conversion completed successfully');
-            } else {
-              toast.error('Conversion failed');
-            }
+    // Fetch table data
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get(`${API_URL}/get-data/${state.fileId}`);
+        if (response.data) {
+          if (response.data.rows && Array.isArray(response.data.rows)) {
+            setTableData(response.data.rows);
+          } else {
+            throw new Error('Invalid data format received from server');
           }
-        } catch (error) {
-          console.error('Error checking conversion status:', error);
-          clearInterval(statusInterval);
-          setConversionStatus({
-            status: 'failed',
-            error: 'Failed to check conversion status'
-          });
+        } else {
+          throw new Error('No data received from server');
         }
-      }, 1000);
-    } catch (error) {
-      console.error('Error starting conversion:', error);
-      setConversionStatus({
-        status: 'failed',
-        error: 'Failed to start conversion'
-      });
-      toast.error('Failed to start conversion');
-    }
-  };
+      } catch (error: any) {
+        console.error('Error fetching table data:', error);
+        const errorMessage = error.response?.data?.detail || error.message || 'Failed to load table data';
+        setError(errorMessage);
+        toast.error(errorMessage);
+        if (error.response?.status === 404) {
+          navigate('/', { replace: true });
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleProceedToEdit = () => {
-    if (selectedFile) {
-      navigate('/edit', { state: { fileId: selectedFile } });
-    } else {
-      toast.error('Please complete the conversion first');
-    }
-  };
-
-  const getStatusIcon = () => {
-    switch (conversionStatus.status) {
-      case 'processing':
-        return <ArrowPathIcon className="h-5 w-5 animate-spin text-indigo-600" />;
-      case 'completed':
-        return <CheckCircleIcon className="h-5 w-5 text-green-600" />;
-      case 'failed':
-        return <XCircleIcon className="h-5 w-5 text-red-600" />;
-      default:
-        return null;
-    }
-  };
+    fetchData();
+  }, [location.state, navigate]);
 
   const handleExport = async (format: string) => {
-    const state = location.state as { fileId?: string };
-    if (!state?.fileId) {
+    if (!currentFile?.id) {
       toast.error('No file selected');
       return;
     }
 
     setSelectedFormat(format);
+    setConverting(true);
+    
     try {
-      const response = await axios.get(`${API_URL}/convert`, {
-        params: { 
-          fileId: state.fileId,
-          format
-        },
+      console.log(`Starting export for file ${currentFile.id} to ${format}`);
+      const response = await axios.get(`${API_URL}/api/download/${currentFile.id}/${format}`, {
         responseType: 'blob'
       });
+
+      // Check if the response is valid
+      if (!response.data || response.data.size === 0) {
+        throw new Error('Received empty response from server');
+      }
 
       setConvertedFormats(prev => new Set([...prev, format]));
       
@@ -207,6 +139,8 @@ const ConvertComponent: React.FC = () => {
           ? 'text/csv'
           : 'application/xml'
       });
+
+      // Create and trigger download
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -217,15 +151,35 @@ const ConvertComponent: React.FC = () => {
       window.URL.revokeObjectURL(url);
 
       toast.success(`Successfully exported as ${format.toUpperCase()}`);
-      navigate('/validate', { 
-        state: { fileId: state.fileId },
-        replace: true
-      });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export error:', error);
-      toast.error(`Failed to export as ${format.toUpperCase()}`);
+      let errorMessage = `Failed to export as ${format.toUpperCase()}`;
+      
+      // Extract error message from response if available
+      if (error.response?.data) {
+        try {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const text = reader.result as string;
+            try {
+              const errorData = JSON.parse(text);
+              errorMessage = errorData.detail || errorMessage;
+            } catch (e) {
+              // If JSON parsing fails, use the text as is
+              errorMessage = text || errorMessage;
+            }
+            toast.error(errorMessage);
+          };
+          reader.readAsText(error.response.data);
+        } catch (e) {
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setSelectedFormat(null);
+      setConverting(false);
     }
   };
 
@@ -234,13 +188,62 @@ const ConvertComponent: React.FC = () => {
       toast.error('Please convert to at least one format before proceeding');
       return;
     }
-    navigate('/edit', { 
+    navigate('/validate', { 
       state: { 
-        fileId: selectedFile,
+        data: tableData,
+        fileId: currentFile?.id,
         convertedFormats: Array.from(convertedFormats)
-      } 
+      },
+      replace: true
     });
   };
+
+  const handleValidate = () => {
+    if (tableData.length > 0) {
+      navigate('/validate', { 
+        state: { 
+          data: tableData,
+          fileId: currentFile?.id 
+        } 
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <CircularProgress />
+        <Typography variant="h6" className="mt-4">
+          Converting your document...
+        </Typography>
+        <Typography variant="body2" color="textSecondary" className="mt-2">
+          This may take a few moments
+        </Typography>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <XCircleIcon className="w-16 h-16 text-red-500" />
+        <Typography variant="h6" className="mt-4">
+          Error Loading Document
+        </Typography>
+        <Typography variant="body2" color="textSecondary" className="mt-2">
+          {error}
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => navigate('/')}
+          className="mt-4"
+        >
+          Return to Upload
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -264,33 +267,23 @@ const ConvertComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* File Selection */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Selected File</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {files.map((file) => (
-            <button
-              key={file.id}
-              onClick={() => setSelectedFile(file.id)}
-              className={`relative p-4 rounded-lg border transition-all duration-200 ${
-                selectedFile === file.id
-                  ? 'border-indigo-600 bg-indigo-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <DocumentArrowDownIcon className="h-6 w-6 text-gray-400" />
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(file.uploadedAt).toLocaleDateString()}
-                  </p>
-                </div>
+      {/* Current File */}
+      {currentFile && (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Current File</h3>
+          <div className="p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <DocumentArrowDownIcon className="h-6 w-6 text-gray-400" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">{currentFile.name}</p>
+                <p className="text-xs text-gray-500">
+                  {new Date(currentFile.uploadedAt).toLocaleDateString()}
+                </p>
               </div>
-            </button>
-          ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Export Format Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -314,7 +307,7 @@ const ConvertComponent: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4">
               <button
                 onClick={() => handleExport(format.id)}
                 disabled={converting && selectedFormat === format.id}

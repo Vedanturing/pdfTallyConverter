@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <VOUCHER>
+          <DATE>01-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>Bill Payment</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>02-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>UPI Transfer</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>04-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>NEFT Transfer</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>05-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>Mobile Recharge</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>06-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>UPI Transfer</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>08-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>UPI Transfer</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>10-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>UPI Transfer</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>13-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>NEFT Transfer</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>14-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>Cash Deposit</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>15-02-2025</DATE>
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <AMOUNT />
+          <NARRATION>POS Purchase</NARRATION>
+          <BALANCE />
+        </VOUCHER>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

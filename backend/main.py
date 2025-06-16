@@ -8,8 +8,8 @@ import shutil
 import uuid
 import pdfplumber
 import pandas as pd
-import cv2
 import numpy as np
+import cv2
 import pytesseract
 from PIL import Image
 import io
@@ -26,6 +26,10 @@ import sys
 import traceback
 import uvicorn
 import mimetypes
+from fastapi import BackgroundTasks
+from pathlib import Path
+import re
+from validation_utils import validate_table_data, get_validation_summary
 
 # Configure logging
 logging.basicConfig(
@@ -186,20 +190,112 @@ async def save_upload_file(upload_file: UploadFile) -> tuple[str, str]:
             os.remove(file_path)
         raise HTTPException(status_code=500, detail=str(e))
 
-def extract_tables_from_pdf(file_path: str) -> List[pd.DataFrame]:
+def extract_tables_from_pdf(file_path: str) -> pd.DataFrame:
     """Extract tables from PDF using pdfplumber"""
-    tables = []
+    logger.info(f"Extracting tables from PDF: {file_path}")
+    all_tables = []
     try:
         with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
-                page_tables = page.extract_tables()
-                for table in page_tables:
-                    if table:  # Check if table is not empty
-                        df = pd.DataFrame(table[1:], columns=table[0])
-                        tables.append(df)
+            for page_num, page in enumerate(pdf.pages, 1):
+                logger.info(f"Processing page {page_num}")
+                tables = page.extract_tables()
+                
+                for table_num, table in enumerate(tables, 1):
+                    if table and len(table) > 1:  # Check if table has content and headers
+                        logger.info(f"Found table {table_num} on page {page_num}")
+                        
+                        # Clean up the headers
+                        headers = []
+                        for header in table[0]:
+                            if header:
+                                # Remove any extra whitespace and standardize header names
+                                cleaned_header = str(header).strip().upper()
+                                # Map common variations of header names
+                                header_mapping = {
+                                    'DATE': ['DATE', 'DT', 'TRANSACTION DATE'],
+                                    'VOUCHER NO': ['VOUCHER NO', 'VOUCHERNO', 'VCH NO', 'REF NO'],
+                                    'LEDGER NAME': ['LEDGER NAME', 'LEDGERNAME', 'ACCOUNT', 'PARTICULARS'],
+                                    'AMOUNT': ['AMOUNT', 'AMT', 'TRANSACTION AMOUNT'],
+                                    'NARRATION': ['NARRATION', 'DESCRIPTION', 'REMARKS', 'DETAILS'],
+                                    'BALANCE': ['BALANCE', 'BAL', 'CLOSING BALANCE']
+                                }
+                                
+                                for standard_name, variations in header_mapping.items():
+                                    if cleaned_header in variations:
+                                        cleaned_header = standard_name
+                                        break
+                                
+                                headers.append(cleaned_header)
+                            else:
+                                headers.append(f'COLUMN_{len(headers) + 1}')
+                        
+                        # Process the data rows
+                        data_rows = []
+                        for row in table[1:]:
+                            # Clean up row data and maintain alignment
+                            cleaned_row = []
+                            for cell in row:
+                                if cell is None:
+                                    cleaned_row.append('')
+                                else:
+                                    # Remove any extra whitespace and newlines
+                                    cleaned_value = str(cell).strip().replace('\n', ' ')
+                                    # Try to convert amounts and balances to numbers
+                                    if any(h in ['AMOUNT', 'BALANCE'] for h in headers):
+                                        try:
+                                            # Remove any currency symbols and commas
+                                            numeric_str = re.sub(r'[^\d.-]', '', cleaned_value)
+                                            if numeric_str:
+                                                cleaned_value = float(numeric_str)
+                                        except ValueError:
+                                            pass
+                                    cleaned_row.append(cleaned_value)
+                            
+                            if any(cleaned_row):  # Only add non-empty rows
+                                data_rows.append(cleaned_row)
+                        
+                        # Create DataFrame with cleaned headers and data
+                        df = pd.DataFrame(data_rows, columns=headers)
+                        
+                        # Clean up the DataFrame
+                        df = df.dropna(how='all')  # Remove any empty rows
+                        df = df.dropna(axis=1, how='all')  # Remove any empty columns
+                        
+                        if not df.empty:
+                            all_tables.append(df)
+                            logger.info(f"Added table with shape: {df.shape}")
+                        else:
+                            logger.warning("Table was empty after cleanup")
+                    else:
+                        logger.warning(f"Empty or invalid table found on page {page_num}")
+
+        if not all_tables:
+            logger.error("No valid tables found in the PDF")
+            raise ValueError("No valid tables found in the PDF")
+
+        # Combine all tables if there are multiple
+        if len(all_tables) > 1:
+            logger.info(f"Combining {len(all_tables)} tables")
+            final_df = pd.concat(all_tables, ignore_index=True)
+        else:
+            final_df = all_tables[0]
+
+        # Ensure all required columns exist
+        required_columns = ['DATE', 'VOUCHER NO', 'LEDGER NAME', 'AMOUNT', 'NARRATION', 'BALANCE']
+        for col in required_columns:
+            if col not in final_df.columns:
+                final_df[col] = ''
+
+        # Sort columns in standard order
+        final_df = final_df[required_columns]
+
+        logger.info(f"Final DataFrame shape: {final_df.shape}")
+        return final_df
+
     except Exception as e:
-        raise ConversionError(f"Failed to extract tables from PDF: {str(e)}")
-    return tables
+        logger.error(f"Error extracting tables from PDF: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise
 
 def process_image_ocr(file_path: str) -> pd.DataFrame:
     """Process image using OCR to extract tabular data"""
@@ -229,84 +325,107 @@ def process_image_ocr(file_path: str) -> pd.DataFrame:
     except Exception as e:
         raise ConversionError(f"Failed to process image: {str(e)}")
 
-def create_tally_xml(data: pd.DataFrame, filename: str) -> str:
-    """Create Tally-compatible XML from DataFrame"""
-    root = ET.Element("ENVELOPE")
-    header = ET.SubElement(root, "HEADER")
-    ET.SubElement(header, "VERSION").text = "1"
-    ET.SubElement(header, "TALLYREQUEST").text = "Import Data"
-    
-    body = ET.SubElement(root, "BODY")
-    importdata = ET.SubElement(body, "IMPORTDATA")
-    requestdesc = ET.SubElement(importdata, "REQUESTDESC")
-    reportname = ET.SubElement(requestdesc, "REPORTNAME").text = "Custom"
-    
-    requestdata = ET.SubElement(importdata, "REQUESTDATA")
-    
-    # Convert DataFrame to XML structure
-    for _, row in data.iterrows():
-        tallymessage = ET.SubElement(requestdata, "TALLYMESSAGE")
-        for col, value in row.items():
-            ET.SubElement(tallymessage, str(col)).text = str(value)
-    
-    # Save XML file
-    xml_path = os.path.join(CONVERTED_DIR, f"{filename}.xml")
-    tree = ET.ElementTree(root)
-    tree.write(xml_path, encoding='utf-8', xml_declaration=True)
-    
-    return xml_path
+def create_tally_xml(df: pd.DataFrame, output_path: str) -> None:
+    """Create Tally XML from DataFrame"""
+    logger.info(f"Creating Tally XML at: {output_path}")
+    try:
+        # Create the root element
+        root = ET.Element("ENVELOPE")
+        
+        # Add header
+        header = ET.SubElement(root, "HEADER")
+        ET.SubElement(header, "TALLYREQUEST").text = "Import Data"
+        
+        # Add body
+        body = ET.SubElement(root, "BODY")
+        importdata = ET.SubElement(body, "IMPORTDATA")
+        requestdesc = ET.SubElement(importdata, "REQUESTDESC")
+        reportname = ET.SubElement(requestdesc, "REPORTNAME").text = "Vouchers"
+        
+        # Add data
+        requestdata = ET.SubElement(importdata, "REQUESTDATA")
+        
+        # Convert each row to XML
+        for _, row in df.iterrows():
+            voucher = ET.SubElement(requestdata, "VOUCHER")
+            for col in df.columns:
+                if pd.notna(row[col]):  # Only add non-null values
+                    ET.SubElement(voucher, col.upper().replace(" ", "")).text = str(row[col])
+        
+        # Create the XML file
+        tree = ET.ElementTree(root)
+        ET.indent(tree, space="  ")
+        tree.write(output_path, encoding="utf-8", xml_declaration=True)
+        
+        logger.info("Successfully created Tally XML file")
+        
+    except Exception as e:
+        logger.error(f"Error creating Tally XML: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise
 
 def convert_file(file_path: str, file_id: str, output_formats: List[str] = ["xlsx", "csv", "xml"]) -> Dict:
-    """Convert file to specified formats"""
-    # Extract data based on file type
-    file_extension = os.path.splitext(file_path)[1].lower()
-    if file_extension == '.pdf':
-        dataframes = extract_tables_from_pdf(file_path)
-        if not dataframes:
-            raise ConversionError("No tables found in PDF")
-        # Combine all tables into one if multiple tables found
-        data = pd.concat(dataframes, ignore_index=True)
-    elif file_extension in ['.png', '.jpg', '.jpeg']:
-        data = process_image_ocr(file_path)
-    else:
-        raise HTTPException(status_code=400, detail="Unsupported file format")
-    
-    # Convert to requested formats
-    output_files = {}
-    
-    for format in output_formats:
-        output_path = os.path.join(CONVERTED_DIR, f"{file_id}.{format}")
-        
-        if format == 'xlsx':
-            data.to_excel(output_path, index=False)
-            output_files['xlsx'] = output_path
-        elif format == 'csv':
-            data.to_csv(output_path, index=False)
-            output_files['csv'] = output_path
-        elif format == 'xml':
-            xml_path = create_tally_xml(data, file_id)
-            output_files['xml'] = xml_path
-    
-    # Prepare data for frontend
-    headers = data.columns.tolist()
-    rows = []
-    for _, row in data.iterrows():
-        row_dict = {}
-        for col in headers:
-            row_dict[col] = str(row[col])
-        rows.append(row_dict)
+    """Convert a file and return the extracted data"""
+    try:
+        # Extract data from file
+        if file_path.lower().endswith('.pdf'):
+            data = extract_tables_from_pdf(file_path)
+        elif file_path.lower().endswith(('.png', '.jpg', '.jpeg')):
+            data = process_image_ocr(file_path)
+        else:
+            raise ConversionError(f"Unsupported file format: {file_path}")
 
-    return {
-        "status": "success",
-        "message": "File converted successfully",
-        "file_id": file_id,
-        "headers": headers,
-        "rows": rows,
-        "converted_files": {
-            format: f"/download/{os.path.basename(path)}"
-            for format, path in output_files.items()
+        # Get headers
+        headers = data.columns.tolist()
+
+        # Convert DataFrame to rows while preserving numeric types
+        rows = []
+        for _, row in data.iterrows():
+            row_dict = {}
+            for col in headers:
+                value = row[col]
+                # Convert numpy types to Python types
+                if pd.isna(value):
+                    row_dict[col] = None
+                elif isinstance(value, (np.integer, np.floating)):
+                    row_dict[col] = float(value) if isinstance(value, np.floating) else int(value)
+                else:
+                    row_dict[col] = str(value)
+            rows.append(row_dict)
+
+        # Create output directory
+        os.makedirs(CONVERTED_DIR, exist_ok=True)
+
+        # Convert to requested formats
+        output_files = {}
+        df = pd.DataFrame(rows)
+        
+        for format in output_formats:
+            output_path = os.path.join(CONVERTED_DIR, f"{file_id}.{format}")
+            if format == "xlsx":
+                df.to_excel(output_path, index=False)
+            elif format == "csv":
+                df.to_csv(output_path, index=False)
+            elif format == "xml":
+                create_tally_xml(df, output_path)
+            output_files[format] = output_path
+
+        return {
+            "status": "success",
+            "message": "File converted successfully",
+            "file_id": file_id,
+            "headers": headers,
+            "rows": rows,
+            "converted_files": {
+                format: f"/download/{os.path.basename(path)}"
+                for format, path in output_files.items()
+            }
         }
-    }
+
+    except Exception as e:
+        logger.error(f"Error converting file: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise ConversionError(str(e))
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
@@ -332,32 +451,147 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/convert/{file_id}")
-async def convert_uploaded_file(
-    file_id: str,
-    output_formats: List[str] = ["xlsx", "csv", "xml"]
-):
-    """Convert an already uploaded file"""
+async def convert_uploaded_file(file_id: str):
+    """Convert a file and return the extracted data"""
     try:
-        # Find the uploaded file
-        for ext in ['.pdf', '.png', '.jpg', '.jpeg']:
-            file_path = os.path.join(UPLOAD_DIR, f"{file_id}{ext}")
-            if os.path.exists(file_path):
-                result = convert_file(file_path, file_id, output_formats)
-                # Clean up uploaded file after conversion
-                os.remove(file_path)
-                return JSONResponse(result)
+        logger.info(f"Starting conversion for file_id: {file_id}")
         
-        raise HTTPException(status_code=404, detail="File not found")
+        # Find the original file
+        original_file = None
+        upload_dir_contents = os.listdir(UPLOAD_DIR)
+        logger.info(f"Files in upload directory: {upload_dir_contents}")
         
-    except ConversionError as e:
-        return JSONResponse(
-            status_code=400,
-            content={"status": "error", "message": str(e)}
-        )
+        for filename in upload_dir_contents:
+            if filename.startswith(file_id):
+                original_file = os.path.join(UPLOAD_DIR, filename)
+                logger.info(f"Found original file: {original_file}")
+                break
+        
+        if not original_file:
+            logger.error(f"Original file not found for file_id: {file_id}")
+            raise HTTPException(status_code=404, detail="Original file not found")
+
+        # Extract data from the file
+        try:
+            if original_file.lower().endswith('.pdf'):
+                logger.info("Processing PDF file")
+                df = extract_tables_from_pdf(original_file)
+            elif original_file.lower().endswith('.xlsx'):
+                logger.info("Reading Excel file")
+                df = pd.read_excel(original_file)
+            elif original_file.lower().endswith('.csv'):
+                logger.info("Reading CSV file")
+                df = pd.read_csv(original_file)
+            else:
+                raise ValueError(f"Unsupported file format: {original_file}")
+
+            # Convert DataFrame to dictionary format while preserving numeric types
+            headers = df.columns.tolist()
+            rows = []
+            for _, row in df.iterrows():
+                row_dict = {}
+                for col in headers:
+                    value = row[col]
+                    # Convert numpy types to Python types
+                    if pd.isna(value):
+                        row_dict[col] = None
+                    elif isinstance(value, (np.integer, np.floating)):
+                        row_dict[col] = float(value) if isinstance(value, np.floating) else int(value)
+                    else:
+                        row_dict[col] = str(value)
+                rows.append(row_dict)
+
+            data = {
+                'headers': headers,
+                'rows': rows
+            }
+            
+            logger.info(f"Successfully converted file. Data shape: {df.shape}")
+            return data
+
+        except Exception as e:
+            logger.error(f"Error converting file: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error converting file: {str(e)}"
+            )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        return JSONResponse(
+        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
             status_code=500,
-            content={"status": "error", "message": f"Internal server error: {str(e)}"}
+            detail=f"Unexpected error: {str(e)}"
+        )
+
+@app.get("/api/convert/{file_id}/{format}")
+async def convert_to_format(file_id: str, format: str):
+    """Convert a file to a specific format"""
+    try:
+        logger.info(f"Starting format conversion for file_id: {file_id} to {format}")
+        
+        # First convert the file to get the data
+        data = await convert_uploaded_file(file_id)
+        
+        # Create DataFrame from the data
+        df = pd.DataFrame(data['rows'])
+        
+        # Create output filename
+        output_filename = f"{file_id}.{format}"
+        output_path = os.path.join(CONVERTED_DIR, output_filename)
+        
+        # Ensure the converted directory exists
+        os.makedirs(CONVERTED_DIR, exist_ok=True)
+        
+        try:
+            # Convert to the requested format
+            if format == "xlsx":
+                df.to_excel(output_path, index=False)
+                media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            elif format == "csv":
+                df.to_csv(output_path, index=False)
+                media_type = "text/csv"
+            elif format == "xml":
+                create_tally_xml(df, output_path)
+                media_type = "application/xml"
+            else:
+                raise HTTPException(status_code=400, detail="Unsupported format")
+
+            logger.info(f"Successfully converted to {format}")
+            
+            if not os.path.exists(output_path):
+                logger.error(f"Output file was not created: {output_path}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to create output file"
+                )
+
+            # Return the converted file
+            return FileResponse(
+                output_path,
+                media_type=media_type,
+                filename=f"converted-file.{format}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error converting to format: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error converting to format: {str(e)}"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
         )
 
 @app.post("/convert")
@@ -391,11 +625,32 @@ async def convert_new_file(
 
 @app.get("/download/{filename}")
 async def download_file(filename: str):
-    """Download converted file"""
-    file_path = os.path.join(CONVERTED_DIR, filename)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path)
+    """Download a file from the corrected directory"""
+    try:
+        file_path = Path("corrected") / filename
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+            
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type=get_media_type(filename)
+        )
+        
+    except Exception as e:
+        logger.error(f"Error downloading file: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+def get_media_type(filename: str) -> str:
+    """Get the media type based on file extension"""
+    ext = filename.split(".")[-1].lower()
+    media_types = {
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "csv": "text/csv",
+        "xml": "application/xml"
+    }
+    return media_types.get(ext, "application/octet-stream")
 
 def ensure_directory(path: str):
     if not os.path.exists(path):
@@ -481,23 +736,136 @@ async def save_edits(payload: SavePayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/download/{file_id}/{format}")
-async def download_file(file_id: str, format: str):
-    if format not in ["xlsx", "csv", "xml"]:
-        raise HTTPException(status_code=400, detail="Invalid format")
-    
-    file_path = f"corrected/{file_id}_corrected.{format}"
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    return FileResponse(
-        file_path,
-        media_type={
-            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "csv": "text/csv",
-            "xml": "application/xml"
-        }[format],
-        filename=f"corrected_data.{format}"
-    )
+async def download_converted_file(file_id: str, format: str):
+    """Download a file in the specified format"""
+    try:
+        logger.info(f"Starting file conversion request for file_id: {file_id}, format: {format}")
+        
+        # Find the original file
+        original_file = None
+        upload_dir_contents = os.listdir(UPLOAD_DIR)
+        logger.info(f"Files in upload directory: {upload_dir_contents}")
+        
+        for filename in upload_dir_contents:
+            if filename.startswith(file_id):
+                original_file = os.path.join(UPLOAD_DIR, filename)
+                logger.info(f"Found original file: {original_file}")
+                break
+        
+        if not original_file:
+            logger.error(f"Original file not found for file_id: {file_id}")
+            logger.error(f"Available files: {upload_dir_contents}")
+            raise HTTPException(status_code=404, detail=f"Original file not found for ID: {file_id}")
+
+        # Ensure the file exists and is readable
+        if not os.path.exists(original_file):
+            logger.error(f"File exists check failed for: {original_file}")
+            raise HTTPException(status_code=404, detail="File not found on disk")
+
+        # Create output filename
+        output_filename = f"{file_id}.{format}"
+        output_path = os.path.join(CONVERTED_DIR, output_filename)
+        logger.info(f"Output path will be: {output_path}")
+
+        # Ensure the converted directory exists
+        os.makedirs(CONVERTED_DIR, exist_ok=True)
+
+        try:
+            # First, read the original file as a DataFrame
+            logger.info(f"Reading original file: {original_file}")
+            
+            if original_file.lower().endswith('.pdf'):
+                # Handle PDF files
+                logger.info("Processing PDF file")
+                try:
+                    df = extract_tables_from_pdf(original_file)
+                    if df.empty:
+                        raise ValueError("No data extracted from PDF")
+                    logger.info(f"Successfully extracted data from PDF: {df.shape}")
+                except Exception as pdf_error:
+                    logger.error(f"PDF extraction error: {str(pdf_error)}")
+                    logger.error(traceback.format_exc())
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Failed to extract data from PDF: {str(pdf_error)}"
+                    )
+            else:
+                # Handle Excel/CSV files
+                try:
+                    if original_file.lower().endswith('.xlsx'):
+                        logger.info("Reading Excel file")
+                        df = pd.read_excel(original_file)
+                    elif original_file.lower().endswith('.csv'):
+                        logger.info("Reading CSV file")
+                        df = pd.read_csv(original_file)
+                    else:
+                        raise ValueError(f"Unsupported input file format: {original_file}")
+                except Exception as read_error:
+                    logger.error(f"Error reading file: {str(read_error)}")
+                    logger.error(traceback.format_exc())
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Failed to read file: {str(read_error)}"
+                    )
+
+            # Now convert to the target format
+            logger.info(f"Converting to format: {format}")
+            try:
+                if format == "xlsx":
+                    df.to_excel(output_path, index=False)
+                    media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                elif format == "csv":
+                    df.to_csv(output_path, index=False)
+                    media_type = "text/csv"
+                elif format == "xml":
+                    create_tally_xml(df, output_path)
+                    media_type = "application/xml"
+                else:
+                    raise HTTPException(status_code=400, detail="Unsupported format")
+            except Exception as convert_error:
+                logger.error(f"Error during conversion to {format}: {str(convert_error)}")
+                logger.error(traceback.format_exc())
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to convert to {format}: {str(convert_error)}"
+                )
+
+            logger.info(f"Successfully converted file to {format}")
+            
+            if not os.path.exists(output_path):
+                logger.error(f"Output file was not created: {output_path}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to create output file"
+                )
+
+            # Return the converted file
+            logger.info(f"Sending file response: {output_path}")
+            return FileResponse(
+                output_path,
+                media_type=media_type,
+                filename=f"converted-file.{format}"
+            )
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during conversion: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise HTTPException(
+                status_code=500,
+                detail=f"Unexpected error during conversion: {str(e)}"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in download endpoint: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
+        )
 
 @app.get("/files")
 async def list_files():
@@ -599,91 +967,84 @@ def validate_table(data: List[List[str]]) -> List[Dict]:
     
     return validation_results
 
-@app.get("/validate-data")
-async def validate_data():
-    """Validate the current data and return validation results"""
+@app.post("/validate-data")
+async def validate_data(request: Request):
     try:
-        # Load the current data
-        data_file = os.path.join(CONVERTED_DIR, "latest.json")
-        if not os.path.exists(data_file):
-            raise HTTPException(status_code=404, detail="No data available for validation")
-        
-        with open(data_file, 'r') as f:
-            data = json.load(f)
-        
-        # Validate the data
-        validation_results = validate_table(data['rows'])
+        data = await request.json()
+        validation_results = validate_table_data(data)
+        summary = get_validation_summary(validation_results)
         
         return {
-            "status": "success",
-            "data": data,
-            "validation": validation_results
+            "validation_results": validation_results,
+            "summary": summary
         }
     except Exception as e:
+        logger.error(f"Error in validate_data: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/save-edits")
-async def save_edits(request: Request):
-    """Save edited data and export in multiple formats"""
+async def save_edits(
+    request: Request,
+    background_tasks: BackgroundTasks
+) -> Dict[str, Any]:
+    """Save edited data and export to different formats"""
     try:
-        body = await request.json()
-        original_data = body['originalData']
-        modified_data = body['modifiedData']
-        edit_history = body['editHistory']
+        data = await request.json()
+        file_id = data.get("fileId")
+        original_data = data.get("originalData")
+        modified_data = data.get("modifiedData")
         
-        # Save the modified data
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        base_filename = f"corrected_{timestamp}"
+        if not all([file_id, original_data, modified_data]):
+            raise HTTPException(status_code=400, message="Missing required data")
+            
+        # Create corrected directory if it doesn't exist
+        corrected_dir = Path("corrected")
+        corrected_dir.mkdir(exist_ok=True)
         
-        # Save as JSON
-        json_path = os.path.join(CORRECTED_DIR, f"{base_filename}.json")
-        with open(json_path, 'w') as f:
-            json.dump({
-                'data': modified_data,
-                'editHistory': edit_history
-            }, f, indent=2)
-        
-        # Convert to DataFrame
-        rows = []
-        for row in modified_data['rows']:
-            row_data = {}
-            for header in modified_data['headers']:
-                row_data[header] = row['cells'][header]['value']
-            rows.append(row_data)
-        df = pd.DataFrame(rows)
+        # Convert data to pandas DataFrame
+        df = pd.DataFrame(modified_data)
         
         # Save as Excel
-        excel_path = os.path.join(CORRECTED_DIR, f"{base_filename}.xlsx")
+        excel_path = corrected_dir / f"{file_id}_corrected.xlsx"
         df.to_excel(excel_path, index=False)
         
         # Save as CSV
-        csv_path = os.path.join(CORRECTED_DIR, f"{base_filename}.csv")
+        csv_path = corrected_dir / f"{file_id}_corrected.csv"
         df.to_csv(csv_path, index=False)
         
-        # Generate Tally XML
-        root = ET.Element('ENVELOPE')
-        msg = ET.SubElement(root, 'TALLYMESSAGE')
-        for row in rows:
-            voucher = ET.SubElement(msg, 'VOUCHER')
-            for key, value in row.items():
-                elem = ET.SubElement(voucher, key.upper().replace(' ', '_'))
-                elem.text = str(value)
+        # Save as XML
+        xml_path = corrected_dir / f"{file_id}_corrected.xml"
+        df.to_xml(xml_path, index=False)
         
-        xml_path = os.path.join(CORRECTED_DIR, f"{base_filename}.xml")
-        tree = ET.ElementTree(root)
-        tree.write(xml_path, encoding='utf-8', xml_declaration=True)
+        # Log changes
+        changes = []
+        for i, (orig, mod) in enumerate(zip(original_data, modified_data)):
+            for key in orig:
+                if orig[key] != mod[key]:
+                    changes.append({
+                        "row": i,
+                        "column": key,
+                        "original": orig[key],
+                        "modified": mod[key]
+                    })
+        
+        # Save changes log
+        log_path = corrected_dir / f"{file_id}_changes.json"
+        with open(log_path, "w") as f:
+            json.dump(changes, f, indent=2)
         
         return {
-            "status": "success",
+            "message": "Files saved successfully",
             "files": {
-                "json": json_path,
-                "excel": excel_path,
-                "csv": csv_path,
-                "xml": xml_path
+                "excel": str(excel_path),
+                "csv": str(csv_path),
+                "xml": str(xml_path)
             }
         }
+        
     except Exception as e:
-        logger.error(f"Error saving edits: {str(e)}\n{traceback.format_exc()}")
+        logger.error(f"Error saving edits: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/exports")
@@ -761,6 +1122,160 @@ async def get_file(file_id: str):
             )
     
     raise HTTPException(status_code=404, detail="File not found")
+
+@app.get("/convert")
+async def convert_to_format(fileId: str, format: str):
+    """Convert a file to the specified format and return it"""
+    try:
+        # Get the original file path
+        file_path = None
+        for filename in os.listdir(UPLOAD_DIR):
+            if filename.startswith(fileId):
+                file_path = os.path.join(UPLOAD_DIR, filename)
+                break
+        
+        if not file_path:
+            raise HTTPException(status_code=404, detail="File not found")
+
+        # Create output filename
+        output_filename = f"{fileId}.{format}"
+        output_path = os.path.join(CONVERTED_DIR, output_filename)
+
+        # Convert the file
+        if format == "xlsx":
+            df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
+            df.to_excel(output_path, index=False)
+            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        elif format == "csv":
+            df = pd.read_excel(file_path) if file_path.endswith('.xlsx') else pd.read_csv(file_path)
+            df.to_csv(output_path, index=False)
+            media_type = "text/csv"
+        elif format == "xml":
+            df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
+            create_tally_xml(df, output_path)
+            media_type = "application/xml"
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported format")
+
+        return FileResponse(
+            output_path,
+            media_type=media_type,
+            filename=f"converted-file.{format}"
+        )
+
+    except Exception as e:
+        logger.error(f"Error converting file: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/get-data/{file_id}")
+async def get_data(file_id: str):
+    try:
+        # Check if converted data exists
+        converted_file = os.path.join(CONVERTED_DIR, f"{file_id}.json")
+        
+        # If converted data doesn't exist, convert it first
+        if not os.path.exists(converted_file):
+            # Find the original file
+            original_file = None
+            for ext in ['.pdf', '.png', '.jpg', '.jpeg']:
+                file_path = os.path.join(UPLOAD_DIR, f"{file_id}{ext}")
+                if os.path.exists(file_path):
+                    original_file = file_path
+                    break
+            
+            if not original_file:
+                raise HTTPException(status_code=404, detail="Original file not found")
+
+            # Convert the file based on its type
+            try:
+                if original_file.lower().endswith('.pdf'):
+                    df = extract_tables_from_pdf(original_file)
+                elif original_file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    df = process_image_ocr(original_file)
+                else:
+                    raise ValueError(f"Unsupported file format: {original_file}")
+
+                # Convert DataFrame to dictionary format
+                data = {
+                    'headers': df.columns.tolist(),
+                    'rows': df.to_dict('records')
+                }
+                
+                # Save the converted data
+                os.makedirs(CONVERTED_DIR, exist_ok=True)
+                with open(converted_file, 'w') as f:
+                    json.dump(data, f)
+                
+                return data
+
+            except Exception as e:
+                logger.error(f"Error converting file: {str(e)}")
+                logger.error(traceback.format_exc())
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error converting file: {str(e)}"
+                )
+        
+        # Read the existing converted data
+        with open(converted_file, 'r') as f:
+            data = json.load(f)
+        
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting data: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/export/{format}")
+async def export_data(format: str, data: dict):
+    """Export data to various formats"""
+    try:
+        if not data or not data.get('data'):
+            raise HTTPException(status_code=400, detail="No data provided")
+
+        df = pd.DataFrame(data['data'])
+        output_file = f"temp_export.{format}"
+
+        if format == 'xlsx':
+            df.to_excel(output_file, index=False, engine='openpyxl')
+            media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        elif format == 'csv':
+            df.to_csv(output_file, index=False)
+            media_type = 'text/csv'
+        elif format == 'xml':
+            # Create XML structure
+            root = ET.Element("FinancialData")
+            for _, row in df.iterrows():
+                entry = ET.SubElement(root, "Entry")
+                for col in df.columns:
+                    ET.SubElement(entry, col).text = str(row[col])
+            
+            tree = ET.ElementTree(root)
+            tree.write(output_file, encoding='utf-8', xml_declaration=True)
+            media_type = 'application/xml'
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
+
+        # Return file and clean up
+        response = FileResponse(
+            output_file,
+            media_type=media_type,
+            filename=f"financial_data.{format}"
+        )
+
+        # Clean up in background after response is sent
+        background_tasks = BackgroundTasks()
+        background_tasks.add_task(lambda: os.remove(output_file))
+        
+        return response
+
+    except Exception as e:
+        logger.error(f"Export error: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=3001, reload=True) 

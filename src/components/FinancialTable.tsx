@@ -1,28 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
+  ArrowUturnLeftIcon,
+  ArrowUturnRightIcon,
   ExclamationCircleIcon,
-  ExclamationTriangleIcon,
-  DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline';
-import { format, isValid, parse } from 'date-fns';
+import { toast } from 'react-hot-toast';
+import useAuditStore from '../store/auditStore';
+import useValidationStore from '../store/validationStore';
+import AuditTrail from './AuditTrail';
+import { API_URL } from '../config';
+import { FinancialEntry } from '../types/financial';
+import { validateTable } from '../utils/validation';
 
-interface FinancialEntry {
-  id: string;
-  date: string;
-  voucherNo: string;
-  ledgerName: string;
-  amount: number | string;
-  narration: string;
-}
-
-interface ValidationError {
-  type: 'required' | 'date' | 'amount' | 'duplicate';
-  message: string;
-}
-
-interface CellValidation {
-  isValid: boolean;
-  errors: ValidationError[];
+interface CorrectionNote {
+  rowId: string;
+  column: string;
+  note: string;
+  timestamp: string;
+  userId: string;
 }
 
 interface FinancialTableProps {
@@ -37,208 +32,280 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
   onDataChange,
 }) => {
   const [tableData, setTableData] = useState<FinancialEntry[]>(data);
-  const [validations, setValidations] = useState<{ [key: string]: { [key: string]: CellValidation } }>({});
   const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null);
+  const [history, setHistory] = useState<FinancialEntry[][]>([data]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(0);
+  const [showAuditTrail, setShowAuditTrail] = useState(false);
+  const [showOnlyErrors, setShowOnlyErrors] = useState(false);
+  const [correctionNotes, setCorrectionNotes] = useState<CorrectionNote[]>([]);
+  const [selectedCell, setSelectedCell] = useState<{ rowId: string; field: string } | null>(null);
+  const isInitialMount = useRef(true);
+  const previousData = useRef<FinancialEntry[]>(data);
+  const auditStore = useAuditStore();
+  const { validationMap, setValidationMap } = useValidationStore();
 
   useEffect(() => {
-    validateAllData();
-  }, [tableData]);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
 
-  const validateAllData = () => {
-    const newValidations: { [key: string]: { [key: string]: CellValidation } } = {};
-    const voucherNos = new Set<string>();
-    const duplicateVouchers = new Set<string>();
+    const newValidationMap = validateTable(tableData);
+    setValidationMap(newValidationMap);
 
-    // First pass to find duplicates
-    tableData.forEach((row) => {
-      if (voucherNos.has(row.voucherNo)) {
-        duplicateVouchers.add(row.voucherNo);
-      }
-      voucherNos.add(row.voucherNo);
+    // Add validation entry to audit trail
+    const totalErrors = Array.from(newValidationMap.values()).reduce(
+      (sum, result) => sum + result.errors.filter(e => e.type === 'error').length,
+      0
+    );
+    const totalWarnings = Array.from(newValidationMap.values()).reduce(
+      (sum, result) => sum + result.errors.filter(e => e.type === 'warning').length,
+      0
+    );
+
+    auditStore.addEntry({
+      userId: 'current-user',
+      action: 'validate',
+      entityType: 'table',
+      entityId: 'financial-table',
+      field: 'validation',
+      oldValue: JSON.stringify({ errors: 0, warnings: 0 }),
+      newValue: JSON.stringify({ errors: totalErrors, warnings: totalWarnings }),
     });
-
-    tableData.forEach((row) => {
-      newValidations[row.id] = {
-        date: validateDate(row.date),
-        voucherNo: validateVoucherNo(row.voucherNo, duplicateVouchers),
-        ledgerName: validateRequired(row.ledgerName, 'Ledger name'),
-        amount: validateAmount(row.amount),
-        narration: { isValid: true, errors: [] },
-      };
-    });
-
-    setValidations(newValidations);
-  };
-
-  const validateDate = (date: string): CellValidation => {
-    const errors: ValidationError[] = [];
-    if (!date) {
-      errors.push({ type: 'required', message: 'Date is required' });
-    } else {
-      const parsedDate = parse(date, 'yyyy-MM-dd', new Date());
-      if (!isValid(parsedDate)) {
-        errors.push({ type: 'date', message: 'Invalid date format (YYYY-MM-DD)' });
-      }
-    }
-    return { isValid: errors.length === 0, errors };
-  };
-
-  const validateVoucherNo = (voucherNo: string, duplicates: Set<string>): CellValidation => {
-    const errors: ValidationError[] = [];
-    if (!voucherNo) {
-      errors.push({ type: 'required', message: 'Voucher number is required' });
-    }
-    if (duplicates.has(voucherNo)) {
-      errors.push({ type: 'duplicate', message: 'Duplicate voucher number' });
-    }
-    return { isValid: errors.length === 0, errors };
-  };
-
-  const validateRequired = (value: string, fieldName: string): CellValidation => {
-    const errors: ValidationError[] = [];
-    if (!value) {
-      errors.push({ type: 'required', message: `${fieldName} is required` });
-    }
-    return { isValid: errors.length === 0, errors };
-  };
-
-  const validateAmount = (amount: number | string): CellValidation => {
-    const errors: ValidationError[] = [];
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-
-    if (isNaN(numAmount)) {
-      errors.push({ type: 'required', message: 'Amount must be a number' });
-    } else if (numAmount === 0) {
-      errors.push({ type: 'amount', message: 'Amount cannot be zero' });
-    } else if (numAmount >= 100000) {
-      errors.push({ type: 'amount', message: 'Large amount detected' });
-    }
-
-    return { isValid: errors.length === 0, errors };
-  };
+  }, [tableData, setValidationMap]);
 
   const handleCellEdit = (rowId: string, field: string, value: string) => {
-    const newData = tableData.map((row) =>
-      row.id === rowId ? { ...row, [field]: value } : row
-    );
+    const oldRow = tableData.find((row) => row.id === rowId);
+    const oldValue = oldRow?.[field];
+    let newValue: string | number = value;
+
+    if (field === 'amount') {
+      const numValue = parseFloat(value.replace(/[^\d.-]/g, ''));
+      newValue = isNaN(numValue) ? value : numValue;
+    }
+
+    const newData = tableData.map((row) => {
+      if (row.id === rowId) {
+        return { ...row, [field]: newValue };
+      }
+      return row;
+    });
+    
     setTableData(newData);
     onDataChange?.(newData);
+
+    // Add to history
+    const newHistory = history.slice(0, currentHistoryIndex + 1);
+    newHistory.push(newData);
+    setHistory(newHistory);
+    setCurrentHistoryIndex(newHistory.length - 1);
+
+    // Add audit entry
+    auditStore.addEntry({
+      userId: 'current-user',
+      action: 'update',
+      entityType: 'cell',
+      entityId: rowId,
+      field,
+      oldValue: oldValue?.toString(),
+      newValue: newValue.toString(),
+    });
+  };
+
+  const addCorrectionNote = (note: string) => {
+    if (!selectedCell) return;
+
+    const newNote: CorrectionNote = {
+      rowId: selectedCell.rowId,
+      column: selectedCell.field,
+      note,
+      timestamp: new Date().toISOString(),
+      userId: 'current-user',
+    };
+
+    setCorrectionNotes([...correctionNotes, newNote]);
+    auditStore.addEntry({
+      userId: 'current-user',
+      action: 'add_note',
+      entityType: 'cell',
+      entityId: selectedCell.rowId,
+      field: selectedCell.field,
+      note,
+    });
+  };
+
+  const handleCellRightClick = (e: React.MouseEvent, rowId: string, field: string) => {
+    e.preventDefault();
+    setSelectedCell({ rowId, field });
+    // Show context menu or note input
+  };
+
+  const getFilteredData = () => {
+    if (!showOnlyErrors) return tableData;
+    return tableData.filter(row => {
+      const result = validationMap.get(row.id);
+      return result ? !result.isValid : false;
+    });
+  };
+
+  const handleUndo = () => {
+    if (currentHistoryIndex > 0) {
+      setCurrentHistoryIndex(currentHistoryIndex - 1);
+      const previousState = history[currentHistoryIndex - 1];
+      setTableData(previousState);
+      onDataChange?.(previousState);
+    }
+  };
+
+  const handleRedo = () => {
+    if (currentHistoryIndex < history.length - 1) {
+      setCurrentHistoryIndex(currentHistoryIndex + 1);
+      const nextState = history[currentHistoryIndex + 1];
+      setTableData(nextState);
+      onDataChange?.(nextState);
+    }
   };
 
   const getCellClassName = (rowId: string, field: string) => {
-    const validation = validations[rowId]?.[field];
-    if (!validation) return '';
-
-    const baseClasses = 'px-4 py-2 text-sm';
-    if (!validation.isValid) {
-      if (validation.errors.some((e) => e.type === 'required')) {
-        return `${baseClasses} border-red-500 border-2`;
-      }
-      if (validation.errors.some((e) => e.type === 'date')) {
-        return `${baseClasses} text-red-600`;
-      }
-      if (validation.errors.some((e) => e.type === 'amount')) {
-        return `${baseClasses} bg-yellow-50`;
-      }
-      if (validation.errors.some((e) => e.type === 'duplicate')) {
-        return `${baseClasses} border-orange-500 border-2`;
-      }
-    }
-    return baseClasses;
+    const baseClasses = 'px-4 py-2 text-sm border-r border-gray-300 relative';
+    const result = validationMap.get(rowId);
+    const hasError = result ? result.errors.some(e => e.field === field && e.type === 'error') : false;
+    return `${baseClasses} ${hasError ? 'bg-red-50' : ''} ${
+      editingCell?.rowId === rowId && editingCell?.field === field
+        ? 'bg-blue-50'
+        : ''
+    }`;
   };
 
   const getErrorIcon = (rowId: string, field: string) => {
-    const validation = validations[rowId]?.[field];
-    if (!validation || validation.isValid) return null;
-
-    if (validation.errors.some((e) => e.type === 'duplicate')) {
-      return <DocumentDuplicateIcon className="h-5 w-5 text-orange-500" />;
-    }
-    if (validation.errors.some((e) => e.type === 'amount')) {
-      return <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500" />;
-    }
-    if (validation.errors.some((e) => e.type === 'required' || e.type === 'date')) {
-      return <ExclamationCircleIcon className="h-5 w-5 text-red-500" />;
+    const result = validationMap.get(rowId);
+    const hasError = result ? result.errors.some(e => e.field === field && e.type === 'error') : false;
+    if (hasError) {
+      return (
+        <div className="absolute top-0 right-0 -mt-2 -mr-2">
+          <ExclamationCircleIcon className="h-4 w-4 text-red-500" />
+        </div>
+      );
     }
     return null;
   };
 
-  const getValidatedData = () => {
-    const validRows: FinancialEntry[] = [];
-    const invalidRows: FinancialEntry[] = [];
-
-    tableData.forEach((row) => {
-      const rowValidation = validations[row.id];
-      const isRowValid = Object.values(rowValidation).every((v) => v.isValid);
-      if (isRowValid) {
-        validRows.push(row);
-      } else {
-        invalidRows.push(row);
-      }
-    });
-
-    return { validRows, invalidRows };
+  const formatCellValue = (value: string | number, field: string) => {
+    if (field === 'amount') {
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+      }).format(numValue);
+    }
+    return value;
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Date
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Voucher No
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Ledger Name
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Amount
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Narration
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {tableData.map((row) => (
-            <tr key={row.id}>
-              {Object.entries(row).map(([key, value]) => {
-                if (key === 'id') return null;
-                return (
-                  <td
-                    key={`${row.id}-${key}`}
-                    className={getCellClassName(row.id, key)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      {!readOnly && editingCell?.rowId === row.id && editingCell?.field === key ? (
-                        <input
-                          type={key === 'amount' ? 'number' : 'text'}
-                          value={value}
-                          onChange={(e) => handleCellEdit(row.id, key, e.target.value)}
-                          onBlur={() => setEditingCell(null)}
-                          className="w-full p-1 border rounded"
-                          autoFocus
-                        />
-                      ) : (
-                        <div
-                          onClick={() => !readOnly && setEditingCell({ rowId: row.id, field: key })}
-                          className={`flex-1 ${!readOnly ? 'cursor-pointer' : ''}`}
-                        >
-                          {value}
-                        </div>
-                      )}
-                      {getErrorIcon(row.id, key)}
-                    </div>
-                  </td>
-                );
-              })}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-4">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={showOnlyErrors}
+              onChange={(e) => setShowOnlyErrors(e.target.checked)}
+              className="form-checkbox h-4 w-4 text-blue-600"
+            />
+            <span>Show Only Rows with Errors</span>
+          </label>
+          <button
+            onClick={() => setShowAuditTrail(true)}
+            className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
+          >
+            View Audit Trail
+          </button>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleUndo}
+            disabled={currentHistoryIndex === 0}
+            className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300"
+            title="Undo"
+          >
+            <ArrowUturnLeftIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={currentHistoryIndex === history.length - 1}
+            className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300"
+            title="Redo"
+          >
+            <ArrowUturnRightIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">
+          <thead className="bg-gray-50">
+            <tr>
+              {Object.keys(tableData[0] || {}).map((header) => (
+                <th
+                  key={header}
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300"
+                >
+                  {header}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {getFilteredData().map((row) => (
+              <tr key={row.id} className="hover:bg-gray-50">
+                {Object.entries(row).map(([field, value]) => (
+                  <td
+                    key={`${row.id}-${field}`}
+                    className={getCellClassName(row.id, field)}
+                    onClick={() => !readOnly && setEditingCell({ rowId: row.id, field })}
+                    onContextMenu={(e) => handleCellRightClick(e, row.id, field)}
+                  >
+                    {editingCell?.rowId === row.id && editingCell?.field === field ? (
+                      <input
+                        type={field === 'amount' ? 'number' : 'text'}
+                        defaultValue={value}
+                        className="w-full p-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onBlur={(e) => {
+                          handleCellEdit(row.id, field, e.target.value);
+                          setEditingCell(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCellEdit(row.id, field, e.currentTarget.value);
+                            setEditingCell(null);
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="relative group">
+                        {formatCellValue(value, field)}
+                        {getErrorIcon(row.id, field)}
+                        {correctionNotes.find(
+                          note => note.rowId === row.id && note.column === field
+                        ) && (
+                          <div className="absolute top-0 right-0">
+                            <span className="text-yellow-500">🟡</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showAuditTrail && (
+        <AuditTrail onClose={() => setShowAuditTrail(false)} />
+      )}
     </div>
   );
 };

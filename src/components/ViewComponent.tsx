@@ -11,6 +11,7 @@ import {
   DocumentTextIcon,
   DocumentIcon,
   ArrowDownTrayIcon,
+  ArrowLeftIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -25,6 +26,12 @@ interface FinancialEntry {
   ledgerName: string;
   amount: number | string;
   narration: string;
+  [key: string]: any; // Allow additional fields
+}
+
+interface ConversionResponse {
+  rows: Record<string, any>[];
+  headers: string[];
 }
 
 const ViewComponent: React.FC = () => {
@@ -43,6 +50,7 @@ const ViewComponent: React.FC = () => {
   const location = useLocation();
   const currentBlobUrl = useRef<string | null>(null);
   const isMounted = useRef(true);
+  const [scale, setScale] = useState<number>(1.5);
 
   // Initialize PDF worker when component mounts
   useEffect(() => {
@@ -106,7 +114,7 @@ const ViewComponent: React.FC = () => {
   useEffect(() => {
     isMounted.current = true;
     
-    const state = location.state as { fileId?: string; newUpload?: boolean };
+    const state = location.state as { fileId?: string, fileName?: string, preview?: string };
     
     if (!state?.fileId) {
       const error = 'No file selected';
@@ -118,10 +126,17 @@ const ViewComponent: React.FC = () => {
     }
 
     setSelectedFile(state.fileId);
-    loadFile(state.fileId);
+    
+    // Add a small delay to ensure the file is saved on the server
+    const timer = setTimeout(() => {
+      if (isMounted.current) {
+        loadFile(state.fileId!);
+      }
+    }, 1000); // 1 second delay
 
     return () => {
       isMounted.current = false;
+      clearTimeout(timer);
       
       if (currentBlobUrl.current) {
         window.URL.revokeObjectURL(currentBlobUrl.current);
@@ -160,15 +175,25 @@ const ViewComponent: React.FC = () => {
     setConversionLoading(true);
     try {
       console.log('Converting file with ID:', fileId);
-      const response = await axios.post(`${API_URL}/convert/${fileId}`);
+      const response = await axios.post<ConversionResponse>(`${API_URL}/convert/${fileId}`);
       console.log('Conversion response:', response.data);
       
       if (response.data.rows) {
-        setConvertedData(response.data.rows.map((row: any, index: number) => ({
+        // Convert the rows to the expected format
+        const convertedRows = response.data.rows.map((row: any, index: number) => ({
           id: `row-${index}`,
-          ...row
-        })));
-        setActiveTab('table'); // Switch to table view after conversion
+          date: row.DATE || row.date || '',
+          voucherNo: row['VOUCHER NO'] || row.voucherNo || '',
+          ledgerName: row['LEDGER NAME'] || row.ledgerName || '',
+          amount: typeof row.AMOUNT === 'string' ? parseFloat(row.AMOUNT.replace(/[^0-9.-]+/g, '')) || 0 : row.AMOUNT || 0,
+          narration: row.NARRATION || row.narration || '',
+          balance: typeof row.BALANCE === 'string' ? parseFloat(row.BALANCE.replace(/[^0-9.-]+/g, '')) || 0 : row.BALANCE || 0
+        }));
+
+        setConvertedData(convertedRows);
+        setActiveTab('table');
+      } else {
+        throw new Error('No data received from conversion');
       }
       
       if (conversionToast) {
@@ -176,14 +201,16 @@ const ViewComponent: React.FC = () => {
           id: conversionToast
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error converting file:', error);
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to convert file';
+      
       if (conversionToast) {
-        toast.error('Failed to convert document', {
+        toast.error(errorMessage, {
           id: conversionToast
         });
       } else {
-        toast.error('Failed to convert file');
+        toast.error(errorMessage);
       }
     } finally {
       setConversionLoading(false);
@@ -213,10 +240,12 @@ const ViewComponent: React.FC = () => {
   };
 
   const handleProceed = () => {
-    const state = location.state as { fileId?: string };
+    const state = location.state as { fileId?: string, fileName?: string };
     navigate('/convert', { 
-      state: { fileId: state.fileId },
-      replace: true
+      state: { 
+        fileId: state.fileId,
+        fileName: state.fileName
+      }
     });
   };
 
@@ -225,6 +254,71 @@ const ViewComponent: React.FC = () => {
     
     const conversionToast = toast.loading('Converting document...');
     await convertFile(selectedFile, conversionToast);
+  };
+
+  const renderTable = () => {
+    if (!convertedData.length) return null;
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Voucher No
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Ledger Name
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Amount
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Narration
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Balance
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {convertedData.map((row, index) => (
+              <tr key={row.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.date}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.voucherNo}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.ledgerName}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {typeof row.amount === 'number' ? row.amount.toFixed(2) : row.amount}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.narration}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {typeof row.balance === 'number' ? row.balance.toFixed(2) : row.balance}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const handlePrevPage = () => {
+    setPageNumber(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setPageNumber(prev => Math.min(prev + 1, numPages || 1));
+  };
+
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + 0.2, 3));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(prev - 0.2, 0.5));
   };
 
   if (loading) {
@@ -252,8 +346,52 @@ const ViewComponent: React.FC = () => {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <WorkflowStepper currentStep="preview" />
+    <div className="space-y-6">
+      {/* Use 'upload' as the current step since we're still in the upload phase */}
+      <WorkflowStepper currentStep="upload" />
+
+      {/* Controls */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
+        <div className="space-x-2">
+          <button
+            onClick={handleZoomOut}
+            className="px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-150"
+          >
+            Zoom Out
+          </button>
+          <button
+            onClick={handleZoomIn}
+            className="px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-150"
+          >
+            Zoom In
+          </button>
+        </div>
+        <div className="space-x-2">
+          <button
+            onClick={handlePrevPage}
+            disabled={pageNumber <= 1}
+            className="px-4 py-2 bg-gray-100 rounded-md disabled:opacity-50 hover:bg-gray-200 transition-colors duration-150"
+          >
+            <ArrowLeftIcon className="h-5 w-5 inline" />
+          </button>
+          <span className="text-gray-600">
+            Page {pageNumber} of {numPages || 1}
+          </span>
+          <button
+            onClick={handleNextPage}
+            disabled={pageNumber >= (numPages || 1)}
+            className="px-4 py-2 bg-gray-100 rounded-md disabled:opacity-50 hover:bg-gray-200 transition-colors duration-150"
+          >
+            <ArrowRightIcon className="h-5 w-5 inline" />
+          </button>
+        </div>
+        <button
+          onClick={handleProceed}
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-150"
+        >
+          Proceed to Convert
+        </button>
+      </div>
 
       {/* User Guidance */}
       <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md shadow-sm">
@@ -373,7 +511,7 @@ const ViewComponent: React.FC = () => {
                         {numPages && numPages > 1 && (
                           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm">
                             <button
-                              onClick={() => changePage(-1)}
+                              onClick={handlePrevPage}
                               disabled={pageNumber <= 1}
                               className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50"
                             >
@@ -383,7 +521,7 @@ const ViewComponent: React.FC = () => {
                               Page {pageNumber} of {numPages}
                             </span>
                             <button
-                              onClick={() => changePage(1)}
+                              onClick={handleNextPage}
                               disabled={pageNumber >= numPages}
                               className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50"
                             >
@@ -405,11 +543,7 @@ const ViewComponent: React.FC = () => {
                 )}
                 {activeTab === 'table' && convertedData.length > 0 && (
                   <div className="mt-4">
-                    <FinancialTable
-                      data={convertedData}
-                      readOnly={true}
-                      onDataChange={() => {}}
-                    />
+                    {renderTable()}
                   </div>
                 )}
               </>

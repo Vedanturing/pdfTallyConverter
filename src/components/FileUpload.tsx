@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { API_URL } from '../config';
+import { useNavigate } from 'react-router-dom';
 
 interface FilePreview {
   file: File;
@@ -12,14 +13,11 @@ interface FilePreview {
   currentPage: number;
 }
 
-interface FileUploadProps {
-  onFileUpload: (file: File) => void;
-}
-
-const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
+const FileUpload: React.FC = () => {
   const [filePreview, setFilePreview] = useState<FilePreview | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const navigate = useNavigate();
 
   const handleUpload = async (file: File) => {
     setIsUploading(true);
@@ -46,7 +44,16 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
 
       if (response.data.status === 'success') {
         toast.success('File uploaded successfully!');
-        onFileUpload(file); // Call the prop function instead of navigating
+        // Wait for a moment to ensure the file is processed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Navigate to view page with file details
+        navigate('/view', { 
+          state: { 
+            fileId: response.data.file_id,
+            fileName: file.name,
+            preview: filePreview?.preview
+          }
+        });
       } else {
         throw new Error(response.data.message || 'Upload failed');
       }
@@ -113,7 +120,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
 
     // Start upload
     handleUpload(file);
-  }, [onFileUpload]);
+  }, [navigate]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

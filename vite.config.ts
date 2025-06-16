@@ -27,9 +27,9 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/upload': {
         target: 'http://localhost:3001',
@@ -64,14 +64,19 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html')
-      }
+      },
+      output: {
+        manualChunks: {
+          pdfjs: ['pdfjs-dist'],
+        },
+      },
     },
     commonjsOptions: {
       include: [/node_modules/],
     },
   },
   optimizeDeps: {
-    include: ['react-pdf', 'pdfjs-dist']
+    include: ['react-pdf'],
   },
   worker: {
     format: 'es'

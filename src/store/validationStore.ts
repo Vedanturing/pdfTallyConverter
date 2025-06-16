@@ -1,22 +1,16 @@
-import create from 'zustand';
-import { ValidationResult } from '../types/ValidationTypes';
+import { create } from 'zustand';
+import { ValidationResult } from '../utils/validation';
 
-interface ValidationStore {
-  validationResults: ValidationResult[];
-  isValidating: boolean;
-  error: string | null;
-  setValidationResults: (results: ValidationResult[]) => void;
-  setIsValidating: (status: boolean) => void;
-  setError: (error: string | null) => void;
+interface ValidationState {
+  validationMap: Map<string, ValidationResult>;
+  setValidationMap: (map: Map<string, ValidationResult>) => void;
   clearValidation: () => void;
 }
 
-export const useValidationStore = create<ValidationStore>((set) => ({
-  validationResults: [],
-  isValidating: false,
-  error: null,
-  setValidationResults: (results) => set({ validationResults: results }),
-  setIsValidating: (status) => set({ isValidating: status }),
-  setError: (error) => set({ error }),
-  clearValidation: () => set({ validationResults: [], error: null }),
+const useValidationStore = create<ValidationState>((set) => ({
+  validationMap: new Map(),
+  setValidationMap: (map) => set({ validationMap: map }),
+  clearValidation: () => set({ validationMap: new Map() }),
 }));
+
+export default useValidationStore;
