@@ -3,8 +3,9 @@ export interface FinancialEntry {
   date: string;
   voucherNo: string;
   ledgerName: string;
-  amount: number;
+  amount: number | string;
   narration: string;
+  balance: number | string;
   [key: string]: string | number;
 }
 
@@ -30,4 +31,18 @@ export interface AuditEntry {
   oldValue?: string;
   newValue?: string;
   note?: string;
+}
+
+export interface ValidationError {
+  rowIndex: number;
+  field: keyof FinancialEntry;
+  message: string;
+}
+
+export interface CorrectionNote {
+  rowIndex: number;
+  field: keyof FinancialEntry;
+  originalValue: string | number;
+  correctedValue: string | number;
+  note: string;
 } 

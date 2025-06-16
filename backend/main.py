@@ -29,7 +29,8 @@ import mimetypes
 from fastapi import BackgroundTasks
 from pathlib import Path
 import re
-from validation_utils import validate_table_data, get_validation_summary
+from validation_utils import validate_table_data, get_validation_summary, validate_financial_data, ValidationError
+from bank_statement_parser import process_bank_statement, validate_numeric_fields
 
 # Configure logging
 logging.basicConfig(
@@ -191,111 +192,58 @@ async def save_upload_file(upload_file: UploadFile) -> tuple[str, str]:
         raise HTTPException(status_code=500, detail=str(e))
 
 def extract_tables_from_pdf(file_path: str) -> pd.DataFrame:
-    """Extract tables from PDF using pdfplumber"""
+    """Extract tables from PDF using enhanced bank statement parser"""
     logger.info(f"Extracting tables from PDF: {file_path}")
-    all_tables = []
     try:
+        # Process as bank statement
+        df = process_bank_statement(file_path)
+        
+        if not df.empty:
+            # Validate numeric fields
+            validation_results = validate_numeric_fields(df)
+            if validation_results['errors']:
+                logger.warning(f"Found {len(validation_results['errors'])} numeric field errors")
+            if validation_results['warnings']:
+                logger.info(f"Found {len(validation_results['warnings'])} warnings")
+            
+            # Convert DataFrame to expected format
+            df = df.fillna('')  # Replace NaN with empty string
+            
+            # Ensure required columns exist
+            required_columns = ['date', 'description', 'debit', 'credit', 'balance']
+            for col in required_columns:
+                if col not in df.columns:
+                    df[col] = ''
+            
+            # Format numeric columns
+            for col in ['debit', 'credit', 'balance']:
+                if col in df.columns:
+                    df[col] = df[col].apply(lambda x: '{:.2f}'.format(float(x)) if x != '' else '')
+            
+            # Format date column
+            if 'date' in df.columns and df['date'].any():
+                df['date'] = pd.to_datetime(df['date']).dt.strftime('%d-%m-%Y')
+            
+            return df
+        
+        # If bank statement parsing fails, fall back to existing table extraction
+        logger.info("Bank statement parsing failed, falling back to default table extraction")
         with pdfplumber.open(file_path) as pdf:
+            all_tables = []
             for page_num, page in enumerate(pdf.pages, 1):
-                logger.info(f"Processing page {page_num}")
                 tables = page.extract_tables()
-                
-                for table_num, table in enumerate(tables, 1):
-                    if table and len(table) > 1:  # Check if table has content and headers
-                        logger.info(f"Found table {table_num} on page {page_num}")
-                        
-                        # Clean up the headers
-                        headers = []
-                        for header in table[0]:
-                            if header:
-                                # Remove any extra whitespace and standardize header names
-                                cleaned_header = str(header).strip().upper()
-                                # Map common variations of header names
-                                header_mapping = {
-                                    'DATE': ['DATE', 'DT', 'TRANSACTION DATE'],
-                                    'VOUCHER NO': ['VOUCHER NO', 'VOUCHERNO', 'VCH NO', 'REF NO'],
-                                    'LEDGER NAME': ['LEDGER NAME', 'LEDGERNAME', 'ACCOUNT', 'PARTICULARS'],
-                                    'AMOUNT': ['AMOUNT', 'AMT', 'TRANSACTION AMOUNT'],
-                                    'NARRATION': ['NARRATION', 'DESCRIPTION', 'REMARKS', 'DETAILS'],
-                                    'BALANCE': ['BALANCE', 'BAL', 'CLOSING BALANCE']
-                                }
-                                
-                                for standard_name, variations in header_mapping.items():
-                                    if cleaned_header in variations:
-                                        cleaned_header = standard_name
-                                        break
-                                
-                                headers.append(cleaned_header)
-                            else:
-                                headers.append(f'COLUMN_{len(headers) + 1}')
-                        
-                        # Process the data rows
-                        data_rows = []
-                        for row in table[1:]:
-                            # Clean up row data and maintain alignment
-                            cleaned_row = []
-                            for cell in row:
-                                if cell is None:
-                                    cleaned_row.append('')
-                                else:
-                                    # Remove any extra whitespace and newlines
-                                    cleaned_value = str(cell).strip().replace('\n', ' ')
-                                    # Try to convert amounts and balances to numbers
-                                    if any(h in ['AMOUNT', 'BALANCE'] for h in headers):
-                                        try:
-                                            # Remove any currency symbols and commas
-                                            numeric_str = re.sub(r'[^\d.-]', '', cleaned_value)
-                                            if numeric_str:
-                                                cleaned_value = float(numeric_str)
-                                        except ValueError:
-                                            pass
-                                    cleaned_row.append(cleaned_value)
-                            
-                            if any(cleaned_row):  # Only add non-empty rows
-                                data_rows.append(cleaned_row)
-                        
-                        # Create DataFrame with cleaned headers and data
-                        df = pd.DataFrame(data_rows, columns=headers)
-                        
-                        # Clean up the DataFrame
-                        df = df.dropna(how='all')  # Remove any empty rows
-                        df = df.dropna(axis=1, how='all')  # Remove any empty columns
-                        
-                        if not df.empty:
-                            all_tables.append(df)
-                            logger.info(f"Added table with shape: {df.shape}")
-                        else:
-                            logger.warning("Table was empty after cleanup")
-                    else:
-                        logger.warning(f"Empty or invalid table found on page {page_num}")
-
-        if not all_tables:
-            logger.error("No valid tables found in the PDF")
-            raise ValueError("No valid tables found in the PDF")
-
-        # Combine all tables if there are multiple
-        if len(all_tables) > 1:
-            logger.info(f"Combining {len(all_tables)} tables")
-            final_df = pd.concat(all_tables, ignore_index=True)
-        else:
-            final_df = all_tables[0]
-
-        # Ensure all required columns exist
-        required_columns = ['DATE', 'VOUCHER NO', 'LEDGER NAME', 'AMOUNT', 'NARRATION', 'BALANCE']
-        for col in required_columns:
-            if col not in final_df.columns:
-                final_df[col] = ''
-
-        # Sort columns in standard order
-        final_df = final_df[required_columns]
-
-        logger.info(f"Final DataFrame shape: {final_df.shape}")
-        return final_df
-
+                if tables:
+                    all_tables.extend(tables)
+            
+            if all_tables:
+                df = pd.DataFrame(all_tables[0][1:], columns=all_tables[0][0])
+                return df
+            
+            return pd.DataFrame()
+            
     except Exception as e:
-        logger.error(f"Error extracting tables from PDF: {str(e)}")
-        logger.error(traceback.format_exc())
-        raise
+        logger.error(f"Error in table extraction: {str(e)}")
+        return pd.DataFrame()
 
 def process_image_ocr(file_path: str) -> pd.DataFrame:
     """Process image using OCR to extract tabular data"""
@@ -737,135 +685,53 @@ async def save_edits(payload: SavePayload):
 
 @app.get("/api/download/{file_id}/{format}")
 async def download_converted_file(file_id: str, format: str):
-    """Download a file in the specified format"""
     try:
-        logger.info(f"Starting file conversion request for file_id: {file_id}, format: {format}")
+        # Check if the file exists in converted directory
+        converted_dir = "converted"
+        filename = f"{file_id}.{format}"
+        file_path = os.path.join(converted_dir, filename)
         
-        # Find the original file
-        original_file = None
-        upload_dir_contents = os.listdir(UPLOAD_DIR)
-        logger.info(f"Files in upload directory: {upload_dir_contents}")
-        
-        for filename in upload_dir_contents:
-            if filename.startswith(file_id):
-                original_file = os.path.join(UPLOAD_DIR, filename)
-                logger.info(f"Found original file: {original_file}")
-                break
-        
-        if not original_file:
-            logger.error(f"Original file not found for file_id: {file_id}")
-            logger.error(f"Available files: {upload_dir_contents}")
-            raise HTTPException(status_code=404, detail=f"Original file not found for ID: {file_id}")
-
-        # Ensure the file exists and is readable
-        if not os.path.exists(original_file):
-            logger.error(f"File exists check failed for: {original_file}")
-            raise HTTPException(status_code=404, detail="File not found on disk")
-
-        # Create output filename
-        output_filename = f"{file_id}.{format}"
-        output_path = os.path.join(CONVERTED_DIR, output_filename)
-        logger.info(f"Output path will be: {output_path}")
-
-        # Ensure the converted directory exists
-        os.makedirs(CONVERTED_DIR, exist_ok=True)
-
-        try:
-            # First, read the original file as a DataFrame
-            logger.info(f"Reading original file: {original_file}")
+        if not os.path.exists(file_path):
+            # Try to generate the file from the JSON data
+            json_path = os.path.join(converted_dir, f"{file_id}.json")
+            if not os.path.exists(json_path):
+                raise HTTPException(status_code=404, detail="File not found")
             
-            if original_file.lower().endswith('.pdf'):
-                # Handle PDF files
-                logger.info("Processing PDF file")
-                try:
-                    df = extract_tables_from_pdf(original_file)
-                    if df.empty:
-                        raise ValueError("No data extracted from PDF")
-                    logger.info(f"Successfully extracted data from PDF: {df.shape}")
-                except Exception as pdf_error:
-                    logger.error(f"PDF extraction error: {str(pdf_error)}")
-                    logger.error(traceback.format_exc())
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Failed to extract data from PDF: {str(pdf_error)}"
-                    )
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+            
+            df = pd.DataFrame(data)
+            
+            if format == 'xlsx':
+                output_path = os.path.join(converted_dir, f"{file_id}.xlsx")
+                df.to_excel(output_path, index=False, engine='openpyxl')
+                file_path = output_path
+            elif format == 'csv':
+                output_path = os.path.join(converted_dir, f"{file_id}.csv")
+                df.to_csv(output_path, index=False)
+                file_path = output_path
+            elif format == 'xml':
+                output_path = os.path.join(converted_dir, f"{file_id}.xml")
+                # Convert DataFrame to XML
+                xml_data = df.to_xml(index=False)
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(xml_data)
+                file_path = output_path
             else:
-                # Handle Excel/CSV files
-                try:
-                    if original_file.lower().endswith('.xlsx'):
-                        logger.info("Reading Excel file")
-                        df = pd.read_excel(original_file)
-                    elif original_file.lower().endswith('.csv'):
-                        logger.info("Reading CSV file")
-                        df = pd.read_csv(original_file)
-                    else:
-                        raise ValueError(f"Unsupported input file format: {original_file}")
-                except Exception as read_error:
-                    logger.error(f"Error reading file: {str(read_error)}")
-                    logger.error(traceback.format_exc())
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Failed to read file: {str(read_error)}"
-                    )
-
-            # Now convert to the target format
-            logger.info(f"Converting to format: {format}")
-            try:
-                if format == "xlsx":
-                    df.to_excel(output_path, index=False)
-                    media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                elif format == "csv":
-                    df.to_csv(output_path, index=False)
-                    media_type = "text/csv"
-                elif format == "xml":
-                    create_tally_xml(df, output_path)
-                    media_type = "application/xml"
-                else:
-                    raise HTTPException(status_code=400, detail="Unsupported format")
-            except Exception as convert_error:
-                logger.error(f"Error during conversion to {format}: {str(convert_error)}")
-                logger.error(traceback.format_exc())
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to convert to {format}: {str(convert_error)}"
-                )
-
-            logger.info(f"Successfully converted file to {format}")
-            
-            if not os.path.exists(output_path):
-                logger.error(f"Output file was not created: {output_path}")
-                raise HTTPException(
-                    status_code=500,
-                    detail="Failed to create output file"
-                )
-
-            # Return the converted file
-            logger.info(f"Sending file response: {output_path}")
-            return FileResponse(
-                output_path,
-                media_type=media_type,
-                filename=f"converted-file.{format}"
-            )
-
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error during conversion: {str(e)}")
-            logger.error(traceback.format_exc())
-            raise HTTPException(
-                status_code=500,
-                detail=f"Unexpected error during conversion: {str(e)}"
-            )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error in download endpoint: {str(e)}")
-        logger.error(traceback.format_exc())
-        raise HTTPException(
-            status_code=500,
-            detail=f"Unexpected error: {str(e)}"
+                raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
+        
+        return FileResponse(
+            file_path,
+            filename=f"converted_file.{format}",
+            media_type={
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'csv': 'text/csv',
+                'xml': 'application/xml'
+            }.get(format, 'application/octet-stream')
         )
+    except Exception as e:
+        logging.error(f"Error downloading file: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/files")
 async def list_files():
@@ -1277,6 +1143,192 @@ async def export_data(format: str, data: dict):
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/validate/{file_id}")
+async def validate_data(file_id: str, request: Request):
+    """Validate converted data for a specific file"""
+    try:
+        # Get the request body
+        data = await request.json()
+        
+        if not data:
+            raise HTTPException(status_code=400, detail="No data provided for validation")
+            
+        # Convert the data to a pandas DataFrame for validation
+        df = pd.DataFrame(data)
+        
+        # Perform validation checks
+        validation_results = validate_numeric_fields(df)
+        financial_validation = validate_financial_data(df)
+        
+        # Get validation summary
+        summary = get_validation_summary(validation_results, financial_validation)
+        
+        return {
+            "status": "success",
+            "validation_results": validation_results,
+            "financial_validation": financial_validation,
+            "summary": summary
+        }
+        
+    except ValidationError as e:
+        logger.error(f"Validation error: {str(e)}")
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "detail": str(e)}
+        )
+    except Exception as e:
+        logger.error(f"Error during validation: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "detail": "Internal server error during validation"}
+        )
+
+@app.post("/export/{file_id}/{format}")
+async def export_data(
+    file_id: str,
+    format: str,
+    request: Request,
+    background_tasks: BackgroundTasks
+):
+    try:
+        data = await request.json()
+        client_name = data.get("clientName", "export")
+        
+        # Get the validated data
+        validated_path = os.path.join("corrected", f"{file_id}_validated.json")
+        if not os.path.exists(validated_path):
+            raise HTTPException(status_code=404, detail="Validated data not found")
+        
+        with open(validated_path, "r") as f:
+            entries = json.load(f)
+        
+        # Create export directory
+        export_dir = "exports"
+        os.makedirs(export_dir, exist_ok=True)
+        
+        date_str = datetime.now().strftime("%Y%m%d")
+        safe_client_name = "".join(c for c in client_name if c.isalnum() or c in (' ', '-', '_')).strip()
+        base_filename = f"{safe_client_name}_{date_str}"
+        
+        if format == "xlsx":
+            # Standard Excel export
+            df = pd.DataFrame(entries)
+            output_path = os.path.join(export_dir, f"{base_filename}.xlsx")
+            df.to_excel(output_path, index=False, engine="openpyxl")
+            
+        elif format == "tally":
+            # Tally-compatible Excel format
+            df = pd.DataFrame(entries)
+            # Add Tally-specific formatting
+            df["Voucher Type"] = "Receipt"
+            df["Narration"] = df["description"]
+            output_path = os.path.join(export_dir, f"{base_filename}_tally.xlsx")
+            df.to_excel(output_path, index=False, engine="openpyxl")
+            
+        elif format == "json":
+            # JSON export
+            output_path = os.path.join(export_dir, f"{base_filename}.json")
+            with open(output_path, "w") as f:
+                json.dump(entries, f, indent=2)
+                
+        elif format == "pdf":
+            # Generate PDF summary
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import letter
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+            from reportlab.lib.styles import getSampleStyleSheet
+            
+            output_path = os.path.join(export_dir, f"{base_filename}_summary.pdf")
+            doc = SimpleDocTemplate(output_path, pagesize=letter)
+            
+            # Create the PDF content
+            styles = getSampleStyleSheet()
+            elements = []
+            
+            # Add title
+            elements.append(Paragraph(f"Financial Summary - {client_name}", styles["Title"]))
+            elements.append(Paragraph(f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}", styles["Normal"]))
+            
+            # Create table
+            df = pd.DataFrame(entries)
+            table_data = [df.columns.tolist()] + df.values.tolist()
+            t = Table(table_data)
+            t.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 14),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                ("TEXTCOLOR", (0, 1), (-1, -1), colors.black),
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 1), (-1, -1), 12),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(t)
+            
+            # Build PDF
+            doc.build(elements)
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
+        
+        # Log the export
+        log_path = os.path.join("exports", "audit_log.json")
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "client_name": client_name,
+            "file_id": file_id,
+            "format": format,
+            "filename": os.path.basename(output_path)
+        }
+        
+        try:
+            if os.path.exists(log_path):
+                with open(log_path, "r") as f:
+                    log = json.load(f)
+            else:
+                log = []
+            
+            log.append(log_entry)
+            
+            with open(log_path, "w") as f:
+                json.dump(log, f, indent=2)
+        except Exception as e:
+            logging.error(f"Error writing to audit log: {str(e)}")
+        
+        # Clean up old exports in the background
+        background_tasks.add_task(cleanup_old_exports, export_dir)
+        
+        return FileResponse(
+            output_path,
+            filename=os.path.basename(output_path),
+            media_type="application/octet-stream"
+        )
+        
+    except Exception as e:
+        logging.error(f"Error exporting data: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def cleanup_old_exports(export_dir: str, max_age_days: int = 7):
+    """Clean up export files older than max_age_days."""
+    try:
+        current_time = datetime.now()
+        for file in os.listdir(export_dir):
+            if file == "audit_log.json":
+                continue
+                
+            file_path = os.path.join(export_dir, file)
+            file_modified = datetime.fromtimestamp(os.path.getmtime(file_path))
+            
+            if (current_time - file_modified).days > max_age_days:
+                os.remove(file_path)
+                logging.info(f"Cleaned up old export: {file}")
+    except Exception as e:
+        logging.error(f"Error cleaning up exports: {str(e)}")
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=3001, reload=True) 
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
     

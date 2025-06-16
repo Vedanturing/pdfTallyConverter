@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { useDropzone } from 'react-dropzone';
 import {
@@ -16,6 +16,10 @@ import { API_URL } from '../config';
 import { FinancialEntry } from '../types/financial';
 import toast from 'react-hot-toast';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { Upload, FileText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { convertPDF } from '../utils/pdf-utils';
+import { useLocation } from 'react-router-dom';
 
 // Initialize PDF worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -39,14 +43,28 @@ const PDFConverter: React.FC<PDFConverterProps> = ({
   onPdfUrl,
   onStartValidation,
 }) => {
+  const location = useLocation();
   const [file, setFile] = useState<File | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [numPages, setNumPages] = useState<number>(0);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [convertedData, setConvertedData] = useState<FinancialEntry[] | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [fileId, setFileId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sortColumn, setSortColumn] = useState<keyof FinancialEntry | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  useEffect(() => {
+    const state = location.state as { data?: FinancialEntry[], currentStep?: number };
+    if (state?.data) {
+      setConvertedData(state.data);
+    }
+    if (state?.currentStep) {
+      setCurrentStep(state.currentStep);
+    }
+  }, [location.state]);
 
   // Cleanup function for PDF resources
   useEffect(() => {
@@ -78,103 +96,42 @@ const PDFConverter: React.FC<PDFConverterProps> = ({
     setCurrentStep(Math.max(0, currentStep - 1));
   };
 
-  const { getRootProps, getInputProps } = useDropzone({
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file && file.type === 'application/pdf') {
+      const url = URL.createObjectURL(file);
+      setPdfUrl(url);
+      onPdfUrl(url);
+      setCurrentPage(1);
+      setConvertedData(null);
+    } else {
+      toast.error('Please upload a valid PDF file');
+    }
+  }, [onPdfUrl]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
     accept: {
       'application/pdf': ['.pdf'],
     },
     maxFiles: 1,
-    onDrop: async (acceptedFiles) => {
-      const file = acceptedFiles[0];
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
-      
-      setFile(file);
-      const url = URL.createObjectURL(file);
-      setPdfUrl(url);
-      onPdfUrl(url);
-      setCurrentStep(1);
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        const response = await fetch(`${API_URL}/upload`, {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('Upload failed');
-        }
-
-        const data = await response.json();
-        if (data.file_id) {
-          setFileId(data.file_id);
-          toast.success('File uploaded successfully');
-        }
-      } catch (error) {
-        console.error('Upload error:', error);
-        toast.error('Failed to upload file');
-      }
-    },
   });
 
   const handleConvert = async () => {
-    if (!fileId) {
-      toast.error('No file uploaded');
-      return;
-    }
-
-    setIsConverting(true);
-    setCurrentStep(2);
-
+    if (!pdfUrl) return;
+    
+    setIsLoading(true);
     try {
-      console.log('Converting file with ID:', fileId);
-      const convertResponse = await fetch(`${API_URL}/convert/${fileId}`, {
-        method: 'POST',
-      });
-
-      if (!convertResponse.ok) {
-        throw new Error('Conversion failed');
-      }
-
-      const convertData = await convertResponse.json();
-      console.log('Conversion response:', convertData);
-
-      const dataResponse = await fetch(`${API_URL}/get-data/${fileId}`);
-      if (!dataResponse.ok) {
-        throw new Error('Failed to get converted data');
-      }
-
-      const data = await dataResponse.json();
-      console.log('Data response:', data);
-
-      if (data && data.rows) {
-        // Transform the data to match the FinancialEntry format
-        const transformedData = data.rows.map((row: any, index: number) => ({
-          id: `row-${index}`,
-          date: row.Date || row.DATE || '',
-          voucherNo: row['Voucher No'] || row['VOUCHER NO'] || '',
-          ledgerName: row['Ledger Name'] || row['LEDGER NAME'] || '',
-          amount: typeof row.Amount === 'string' ? parseFloat(row.Amount.replace(/[^0-9.-]+/g, '')) || 0 : row.Amount || 0,
-          narration: row.Narration || row.NARRATION || '',
-          balance: typeof row.Balance === 'string' ? parseFloat(row.Balance.replace(/[^0-9.-]+/g, '')) || 0 : row.Balance || 0
-        }));
-
-        console.log('Transformed data:', transformedData);
-        setConvertedData(transformedData);
-        onConvert(transformedData);
-        toast.success('Conversion successful');
-      } else {
-        throw new Error('Invalid data format');
-      }
+      const result = await convertPDF(pdfUrl);
+      setConvertedData(result);
+      onConvert(result);
+      onStartValidation();
+      toast.success('PDF converted successfully!');
     } catch (error) {
       console.error('Error converting PDF:', error);
-      toast.error('Failed to convert file');
-      setCurrentStep(1);
+      toast.error('Failed to convert PDF');
     } finally {
-      setIsConverting(false);
+      setIsLoading(false);
     }
   };
 
@@ -218,19 +175,62 @@ const PDFConverter: React.FC<PDFConverterProps> = ({
     }
   };
 
+  const handleSort = (column: keyof FinancialEntry) => {
+    if (!convertedData) return;
+
+    const direction = column === sortColumn && sortDirection === 'asc' ? 'desc' : 'asc';
+    setSortDirection(direction);
+    setSortColumn(column);
+
+    const sortedData = [...convertedData].sort((a, b) => {
+      const aValue = a[column];
+      const bValue = b[column];
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      const aString = String(aValue).toLowerCase();
+      const bString = String(bValue).toLowerCase();
+      return direction === 'asc'
+        ? aString.localeCompare(bString)
+        : bString.localeCompare(aString);
+    });
+
+    setConvertedData(sortedData);
+  };
+
   const renderStep = () => {
     switch (currentStep) {
       case 0: // Upload
         return (
           <div
             {...getRootProps()}
-            className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center cursor-pointer hover:border-blue-500 transition-colors"
+            className={`
+              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+              transition-colors duration-200 ease-in-out
+              ${isDragActive 
+                ? 'border-primary bg-primary/5' 
+                : 'border-gray-300 hover:border-primary'
+              }
+            `}
           >
             <input {...getInputProps()} />
-            <DocumentArrowUpIcon className="h-12 w-12 mx-auto text-gray-400" />
-            <p className="mt-4 text-gray-600">
-              Drag & drop a PDF file here, or click to select one
-            </p>
+            <motion.div
+              initial={{ scale: 1 }}
+              whileHover={{ scale: 1.02 }}
+              className="space-y-4"
+            >
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="space-y-2">
+                <p className="text-lg font-medium">
+                  {isDragActive ? 'Drop your PDF here' : 'Drag & drop your PDF here'}
+                </p>
+                <p className="text-sm text-gray-500">
+                  or click to browse from your computer
+                </p>
+              </div>
+            </motion.div>
           </div>
         );
 
@@ -262,195 +262,26 @@ const PDFConverter: React.FC<PDFConverterProps> = ({
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={onDocumentLoadError}
-                loading={
-                  <div className="text-center py-12">
-                    <ArrowPathIcon className="h-8 w-8 mx-auto animate-spin text-blue-500" />
-                    <p className="mt-2 text-gray-600">Loading PDF...</p>
-                  </div>
-                }
-                options={{
-                  cMapUrl: 'cmaps/',
-                  standardFontDataUrl: 'standard_fonts/',
-                }}
               >
-                <Page
-                  pageNumber={currentPage}
-                  width={600}
-                  className="mx-auto"
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
-                />
+                <Page pageNumber={currentPage} />
               </Document>
-              {numPages > 1 && (
-                <div className="flex justify-center mt-4 space-x-2">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-300"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-3 py-1">
-                    Page {currentPage} of {numPages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
-                    disabled={currentPage === numPages}
-                    className="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-300"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         );
 
-      case 2: // Convert & Download
+      case 2: // Convert
         return (
           <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <button
-                onClick={goBack}
-                className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeftIcon className="h-5 w-5 mr-2" />
-                Back
-              </button>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleExport('xlsx')}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Export XLSX
-                </button>
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Export CSV
-                </button>
-                <button
-                  onClick={() => handleExport('xml')}
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-                >
-                  Export XML
-                </button>
-                <button
-                  onClick={onStartValidation}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Start Validation
-                </button>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg shadow-lg p-4">
-                <Document
-                  file={pdfUrl}
-                  onLoadSuccess={onDocumentLoadSuccess}
-                  onLoadError={onDocumentLoadError}
-                  loading={
-                    <div className="text-center py-12">
-                      <ArrowPathIcon className="h-8 w-8 mx-auto animate-spin text-blue-500" />
-                      <p className="mt-2 text-gray-600">Loading PDF...</p>
-                    </div>
-                  }
-                  options={{
-                    cMapUrl: 'cmaps/',
-                    standardFontDataUrl: 'standard_fonts/',
-                  }}
-                >
-                  <Page
-                    pageNumber={currentPage}
-                    width={400}
-                    renderTextLayer={true}
-                    renderAnnotationLayer={true}
-                  />
-                </Document>
-              </div>
-              <div className="bg-white rounded-lg shadow-lg p-4 overflow-x-auto">
-                {convertedData && convertedData.length > 0 ? (
-                  <table className="min-w-full divide-y divide-gray-200 border border-gray-300">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">Voucher No</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">Ledger Name</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">Amount</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">Narration</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {convertedData.map((row) => (
-                        <tr key={row.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 text-sm border-r border-gray-300 whitespace-nowrap">{row.date}</td>
-                          <td className="px-4 py-2 text-sm border-r border-gray-300 whitespace-nowrap">{row.voucherNo}</td>
-                          <td className="px-4 py-2 text-sm border-r border-gray-300 whitespace-nowrap">{row.ledgerName}</td>
-                          <td className="px-4 py-2 text-sm border-r border-gray-300 whitespace-nowrap">{row.amount}</td>
-                          <td className="px-4 py-2 text-sm border-r border-gray-300 whitespace-nowrap">{row.narration}</td>
-                          <td className="px-4 py-2 text-sm border-r border-gray-300 whitespace-nowrap">{row.balance}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    No data available
-                  </div>
-                )}
-              </div>
-            </div>
+            {convertedData && (
+              <FinancialTable
+                data={convertedData}
+                onSort={handleSort}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+              />
+            )}
           </div>
         );
-
-      case 3: // Validate
-        return convertedData ? (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <button
-                onClick={goBack}
-                className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeftIcon className="h-5 w-5 mr-2" />
-                Back
-              </button>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg shadow-lg p-4">
-                <Document
-                  file={pdfUrl}
-                  onLoadSuccess={onDocumentLoadSuccess}
-                  onLoadError={onDocumentLoadError}
-                  loading={
-                    <div className="text-center py-12">
-                      <ArrowPathIcon className="h-8 w-8 mx-auto animate-spin text-blue-500" />
-                      <p className="mt-2 text-gray-600">Loading PDF...</p>
-                    </div>
-                  }
-                  options={{
-                    cMapUrl: 'cmaps/',
-                    standardFontDataUrl: 'standard_fonts/',
-                  }}
-                >
-                  <Page
-                    pageNumber={currentPage}
-                    width={400}
-                    renderTextLayer={true}
-                    renderAnnotationLayer={true}
-                  />
-                </Document>
-              </div>
-              <div className="bg-white rounded-lg shadow-lg p-4">
-                <FinancialTable
-                  data={convertedData}
-                  onDataChange={(newData) => setConvertedData(newData)}
-                />
-              </div>
-            </div>
-          </div>
-        ) : null;
 
       default:
         return null;
@@ -458,9 +289,8 @@ const PDFConverter: React.FC<PDFConverterProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      <WorkflowStepper steps={steps} currentStep={currentStep} />
-      <div className="mt-8">{renderStep()}</div>
+    <div className="max-w-4xl mx-auto">
+      {renderStep()}
     </div>
   );
 };

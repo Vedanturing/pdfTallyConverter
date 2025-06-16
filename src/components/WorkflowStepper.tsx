@@ -1,8 +1,9 @@
 import React from 'react';
+import { type LucideIcon } from 'lucide-react';
 
 interface Step {
   title: string;
-  icon: React.ComponentType<{ className: string }>;
+  icon: React.ForwardRefExoticComponent<any>;
 }
 
 interface WorkflowStepperProps {

@@ -175,4 +175,177 @@ def get_validation_summary(validation_results: List[Dict[str, Any]]) -> Dict[str
         for issue in result["issues"]:
             summary[issue["severity"]] += 1
     
+    return summary
+
+class ValidationError(Exception):
+    pass
+
+def validate_date(date_str: str) -> bool:
+    """Validate if a string is a valid date."""
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+def validate_amount(amount: Any) -> bool:
+    """Validate if a value is a valid numeric amount."""
+    try:
+        float(str(amount).replace(',', ''))
+        return True
+    except (ValueError, TypeError):
+        return False
+
+def validate_gstin(gstin: str) -> bool:
+    """Validate if a string is a valid GSTIN."""
+    pattern = r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$'
+    return bool(re.match(pattern, str(gstin)))
+
+def validate_tax_rate(rate: Any) -> bool:
+    """Validate if a value is a valid tax rate (0-100)."""
+    try:
+        rate_float = float(str(rate).replace('%', ''))
+        return 0 <= rate_float <= 100
+    except (ValueError, TypeError):
+        return False
+
+def validate_financial_data(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Validate financial entries against predefined rules.
+    Returns a dictionary with validation results and errors.
+    """
+    errors = []
+    
+    for idx, entry in enumerate(entries):
+        row_errors = []
+        
+        # Required fields
+        required_fields = ['date', 'description', 'amount']
+        for field in required_fields:
+            if not entry.get(field):
+                row_errors.append(f"Missing required field: {field}")
+        
+        # Date validation
+        if entry.get('date') and not validate_date(entry['date']):
+            row_errors.append("Invalid date format (should be YYYY-MM-DD)")
+        
+        # Amount validation
+        if entry.get('amount') and not validate_amount(entry['amount']):
+            row_errors.append("Invalid amount format")
+        
+        # Balance validation
+        if entry.get('balance') and not validate_amount(entry['balance']):
+            row_errors.append("Invalid balance format")
+        
+        # GSTIN validation (if present)
+        if entry.get('gstin') and not validate_gstin(entry['gstin']):
+            row_errors.append("Invalid GSTIN format")
+        
+        # Tax rate validation (if present)
+        if entry.get('taxRate') and not validate_tax_rate(entry['taxRate']):
+            row_errors.append("Invalid tax rate (should be between 0-100)")
+        
+        if row_errors:
+            errors.append({
+                "row": idx + 1,
+                "errors": row_errors
+            })
+    
+    return {
+        "is_valid": len(errors) == 0,
+        "errors": errors
+    }
+
+def validate_table_data(data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Validate table data for structure and basic content.
+    Returns a dictionary with validation results and errors.
+    """
+    errors = []
+    warnings = []
+    
+    if not data:
+        errors.append("No data provided")
+        return {
+            "is_valid": False,
+            "errors": errors,
+            "warnings": warnings
+        }
+    
+    # Check for consistent columns
+    columns = set(data[0].keys())
+    for idx, row in enumerate(data[1:], 1):
+        row_columns = set(row.keys())
+        if row_columns != columns:
+            missing = columns - row_columns
+            extra = row_columns - columns
+            if missing:
+                errors.append(f"Row {idx + 1} is missing columns: {', '.join(missing)}")
+            if extra:
+                errors.append(f"Row {idx + 1} has extra columns: {', '.join(extra)}")
+    
+    # Validate required columns
+    required_columns = {'date', 'description', 'amount'}
+    missing_required = required_columns - columns
+    if missing_required:
+        errors.append(f"Missing required columns: {', '.join(missing_required)}")
+    
+    return {
+        "is_valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings
+    }
+
+def get_validation_summary(data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Generate a summary of validation checks and potential issues.
+    """
+    summary = {
+        "total_rows": len(data),
+        "empty_fields": [],
+        "numeric_issues": [],
+        "date_issues": [],
+        "duplicate_entries": []
+    }
+    
+    seen_entries = set()
+    
+    for idx, row in enumerate(data):
+        # Check for empty fields
+        empty_fields = [k for k, v in row.items() if not str(v).strip()]
+        if empty_fields:
+            summary["empty_fields"].append({
+                "row": idx + 1,
+                "fields": empty_fields
+            })
+        
+        # Check numeric fields
+        for field in ['amount', 'balance']:
+            if field in row and not validate_amount(row[field]):
+                summary["numeric_issues"].append({
+                    "row": idx + 1,
+                    "field": field,
+                    "value": row[field]
+                })
+        
+        # Check date fields
+        if 'date' in row and not validate_date(row['date']):
+            summary["date_issues"].append({
+                "row": idx + 1,
+                "value": row['date']
+            })
+        
+        # Check for duplicates
+        entry_key = f"{row.get('date')}_{row.get('amount')}_{row.get('description')}"
+        if entry_key in seen_entries:
+            summary["duplicate_entries"].append({
+                "row": idx + 1,
+                "entry": {
+                    "date": row.get('date'),
+                    "amount": row.get('amount'),
+                    "description": row.get('description')
+                }
+            })
+        seen_entries.add(entry_key)
+    
     return summary 

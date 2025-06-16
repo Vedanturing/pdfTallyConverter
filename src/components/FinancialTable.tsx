@@ -11,6 +11,9 @@ import AuditTrail from './AuditTrail';
 import { API_URL } from '../config';
 import { FinancialEntry } from '../types/financial';
 import { validateTable } from '../utils/validation';
+import { motion } from 'framer-motion';
+import { ArrowUpDown, ChevronDown } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface CorrectionNote {
   rowId: string;
@@ -24,12 +27,18 @@ interface FinancialTableProps {
   data: FinancialEntry[];
   readOnly?: boolean;
   onDataChange?: (data: FinancialEntry[]) => void;
+  onSort?: (column: keyof FinancialEntry) => void;
+  sortColumn?: keyof FinancialEntry | null;
+  sortDirection?: 'asc' | 'desc';
 }
 
 const FinancialTable: React.FC<FinancialTableProps> = ({
   data,
   readOnly = false,
   onDataChange,
+  onSort,
+  sortColumn,
+  sortDirection = 'asc',
 }) => {
   const [tableData, setTableData] = useState<FinancialEntry[]>(data);
   const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null);
@@ -42,7 +51,7 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
   const isInitialMount = useRef(true);
   const previousData = useRef<FinancialEntry[]>(data);
   const auditStore = useAuditStore();
-  const { validationMap, setValidationMap } = useValidationStore();
+  const validationStore = useValidationStore();
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -50,8 +59,15 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
       return;
     }
 
+    // Check if the data has actually changed to prevent unnecessary validation
+    const hasDataChanged = JSON.stringify(tableData) !== JSON.stringify(previousData.current);
+    if (!hasDataChanged) {
+      return;
+    }
+
+    previousData.current = [...tableData];
     const newValidationMap = validateTable(tableData);
-    setValidationMap(newValidationMap);
+    validationStore.setValidationMap(newValidationMap);
 
     // Add validation entry to audit trail
     const totalErrors = Array.from(newValidationMap.values()).reduce(
@@ -72,7 +88,7 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
       oldValue: JSON.stringify({ errors: 0, warnings: 0 }),
       newValue: JSON.stringify({ errors: totalErrors, warnings: totalWarnings }),
     });
-  }, [tableData, setValidationMap]);
+  }, [tableData]);
 
   const handleCellEdit = (rowId: string, field: string, value: string) => {
     const oldRow = tableData.find((row) => row.id === rowId);
@@ -143,7 +159,7 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
   const getFilteredData = () => {
     if (!showOnlyErrors) return tableData;
     return tableData.filter(row => {
-      const result = validationMap.get(row.id);
+      const result = validationStore.validationMap.get(row.id);
       return result ? !result.isValid : false;
     });
   };
@@ -168,7 +184,7 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
 
   const getCellClassName = (rowId: string, field: string) => {
     const baseClasses = 'px-4 py-2 text-sm border-r border-gray-300 relative';
-    const result = validationMap.get(rowId);
+    const result = validationStore.validationMap.get(rowId);
     const hasError = result ? result.errors.some(e => e.field === field && e.type === 'error') : false;
     return `${baseClasses} ${hasError ? 'bg-red-50' : ''} ${
       editingCell?.rowId === rowId && editingCell?.field === field
@@ -178,7 +194,7 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
   };
 
   const getErrorIcon = (rowId: string, field: string) => {
-    const result = validationMap.get(rowId);
+    const result = validationStore.validationMap.get(rowId);
     const hasError = result ? result.errors.some(e => e.field === field && e.type === 'error') : false;
     if (hasError) {
       return (
@@ -201,45 +217,80 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
     return value;
   };
 
+  const getValidationStatus = (entry: FinancialEntry) => {
+    const validation = validationStore.validationMap.get(entry.id);
+    if (!validation) return null;
+
+    return {
+      isValid: validation.isValid,
+      errorCount: validation.errors.filter(e => e.type === 'error').length,
+      warningCount: validation.errors.filter(e => e.type === 'warning').length,
+    };
+  };
+
+  const handleCellClick = (entry: FinancialEntry, field: string) => {
+    const validation = validationStore.validationMap.get(entry.id);
+    if (!validation) return;
+
+    const errors = validation.errors.filter(e => e.field === field);
+    if (errors.length > 0) {
+      // Add to audit trail
+      auditStore.addEntry({
+        userId: 'current-user', // Replace with actual user ID
+        action: 'validate',
+        entityType: 'cell',
+        entityId: entry.id,
+        field,
+        validationResult: {
+          isValid: errors.every(e => e.type === 'warning'),
+          errorCount: errors.filter(e => e.type === 'error').length,
+          warningCount: errors.filter(e => e.type === 'warning').length,
+        },
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={showOnlyErrors}
-              onChange={(e) => setShowOnlyErrors(e.target.checked)}
-              className="form-checkbox h-4 w-4 text-blue-600"
-            />
-            <span>Show Only Rows with Errors</span>
-          </label>
-          <button
-            onClick={() => setShowAuditTrail(true)}
-            className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
-          >
-            View Audit Trail
-          </button>
+      {!readOnly && (
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={showOnlyErrors}
+                onChange={(e) => setShowOnlyErrors(e.target.checked)}
+                className="form-checkbox h-4 w-4 text-blue-600"
+              />
+              <span>Show Only Rows with Errors</span>
+            </label>
+            <button
+              onClick={() => setShowAuditTrail(true)}
+              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
+            >
+              View Audit Trail
+            </button>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={handleUndo}
+              disabled={currentHistoryIndex === 0}
+              className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300"
+              title="Undo"
+            >
+              <ArrowUturnLeftIcon className="h-5 w-5" />
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={currentHistoryIndex === history.length - 1}
+              className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300"
+              title="Redo"
+            >
+              <ArrowUturnRightIcon className="h-5 w-5" />
+            </button>
+          </div>
         </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={handleUndo}
-            disabled={currentHistoryIndex === 0}
-            className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300"
-            title="Undo"
-          >
-            <ArrowUturnLeftIcon className="h-5 w-5" />
-          </button>
-          <button
-            onClick={handleRedo}
-            disabled={currentHistoryIndex === history.length - 1}
-            className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300"
-            title="Redo"
-          >
-            <ArrowUturnRightIcon className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">
@@ -250,64 +301,53 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
                   key={header}
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300"
                 >
-                  {header}
+                  <Button
+                    variant="ghost"
+                    onClick={() => onSort?.(header as keyof FinancialEntry)}
+                    className="h-8 flex items-center gap-2"
+                  >
+                    {header}
+                    {!readOnly && <ArrowUpDown className="h-4 w-4" />}
+                  </Button>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {getFilteredData().map((row) => (
-              <tr key={row.id} className="hover:bg-gray-50">
+              <motion.tr
+                key={row.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 * Array.from(getFilteredData()).indexOf(row) }}
+                className={`border-b transition-colors hover:bg-muted/50 ${
+                  !readOnly && getValidationStatus(row)?.isValid === false ? 'bg-red-50' :
+                  !readOnly && getValidationStatus(row)?.isValid === true ? 'bg-green-50' :
+                  ''
+                }`}
+              >
                 {Object.entries(row).map(([field, value]) => (
                   <td
                     key={`${row.id}-${field}`}
-                    className={getCellClassName(row.id, field)}
-                    onClick={() => !readOnly && setEditingCell({ rowId: row.id, field })}
-                    onContextMenu={(e) => handleCellRightClick(e, row.id, field)}
+                    className={readOnly ? 'px-4 py-2 text-sm border-r border-gray-300 relative' : getCellClassName(row.id, field)}
+                    onClick={(e) => {
+                      if (!readOnly) {
+                        e.preventDefault();
+                        handleCellClick(row, field);
+                      }
+                    }}
                   >
-                    {editingCell?.rowId === row.id && editingCell?.field === field ? (
-                      <input
-                        type={field === 'amount' ? 'number' : 'text'}
-                        defaultValue={value}
-                        className="w-full p-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onBlur={(e) => {
-                          handleCellEdit(row.id, field, e.target.value);
-                          setEditingCell(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleCellEdit(row.id, field, e.currentTarget.value);
-                            setEditingCell(null);
-                          }
-                        }}
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="relative group">
-                        {formatCellValue(value, field)}
-                        {getErrorIcon(row.id, field)}
-                        {correctionNotes.find(
-                          note => note.rowId === row.id && note.column === field
-                        ) && (
-                          <div className="absolute top-0 right-0">
-                            <span className="text-yellow-500">🟡</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {formatCellValue(value, field)}
+                    {!readOnly && getErrorIcon(row.id, field)}
                   </td>
                 ))}
-              </tr>
+              </motion.tr>
             ))}
           </tbody>
         </table>
       </div>
-
-      {showAuditTrail && (
-        <AuditTrail onClose={() => setShowAuditTrail(false)} />
-      )}
     </div>
   );
 };
 
-export default FinancialTable; 
+export default FinancialTable;

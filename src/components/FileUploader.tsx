@@ -54,19 +54,17 @@ const FileUploader: React.FC = () => {
 
       console.log('Upload response:', response.data); // Debug log
 
-      if (response.data.file_id) {
-        toast.success('File uploaded successfully', {
-          id: loadingToast
-        });
-        
-        // Navigate to preview with the file ID
-        console.log('Navigating to view with file ID:', response.data.file_id); // Debug log
-        navigate('/view', { 
+      if (response.data.status === 'success') {
+        toast.success('File uploaded successfully!');
+        // Wait for a moment to ensure the file is processed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Navigate to preview page with file details
+        navigate('/preview', { 
           state: { 
             fileId: response.data.file_id,
-            newUpload: true
-          },
-          replace: true
+            fileName: file.name,
+            currentStep: 1 // Set to Preview step
+          }
         });
       } else {
         throw new Error('No file ID received from server');

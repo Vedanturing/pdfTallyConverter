@@ -9,12 +9,11 @@ import {
   ArrowRightIcon,
   TableCellsIcon,
   DocumentIcon,
+  ArrowLeftIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
-import WorkflowStepper from './WorkflowStepper';
-import { useWorkflowStore } from '../store/useWorkflowStore';
-import { Button, Box, Typography, CircularProgress } from '@mui/material';
+import { FinancialEntry } from '../types/financial';
 
 interface ConversionStatus {
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -56,17 +55,15 @@ const EXPORT_FORMATS: ExportFormat[] = [
 
 const ConvertComponent: React.FC = () => {
   const [currentFile, setCurrentFile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [converting, setConverting] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [convertedFormats, setConvertedFormats] = useState<Set<string>>(new Set());
-  const [tableData, setTableData] = useState<any[]>([]);
+  const [tableData, setTableData] = useState<FinancialEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    const state = location.state as { fileId?: string, fileName?: string };
+    const state = location.state as { fileId?: string, data?: FinancialEntry[] };
     if (!state?.fileId) {
       toast.error('No file selected');
       navigate('/', { replace: true });
@@ -75,39 +72,12 @@ const ConvertComponent: React.FC = () => {
     
     setCurrentFile({
       id: state.fileId,
-      name: state.fileName || 'Uploaded File',
-      uploadedAt: new Date().toISOString()
+      name: 'Uploaded File',
     });
 
-    // Fetch table data
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get(`${API_URL}/get-data/${state.fileId}`);
-        if (response.data) {
-          if (response.data.rows && Array.isArray(response.data.rows)) {
-            setTableData(response.data.rows);
-          } else {
-            throw new Error('Invalid data format received from server');
-          }
-        } else {
-          throw new Error('No data received from server');
-        }
-      } catch (error: any) {
-        console.error('Error fetching table data:', error);
-        const errorMessage = error.response?.data?.detail || error.message || 'Failed to load table data';
-        setError(errorMessage);
-        toast.error(errorMessage);
-        if (error.response?.status === 404) {
-          navigate('/', { replace: true });
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    if (state.data) {
+      setTableData(state.data);
+    }
   }, [location.state, navigate]);
 
   const handleExport = async (format: string) => {
@@ -116,16 +86,25 @@ const ConvertComponent: React.FC = () => {
       return;
     }
 
-    setSelectedFormat(format);
-    setConverting(true);
+    const toastId = toast.loading(`Converting to ${format.toUpperCase()}...`);
+    setLoading(true);
+    setError(null);
     
     try {
-      console.log(`Starting export for file ${currentFile.id} to ${format}`);
-      const response = await axios.get(`${API_URL}/api/download/${currentFile.id}/${format}`, {
+      // First, ensure the file is converted
+      const convertResponse = await axios.post(`${API_URL}/convert/${currentFile.id}`, {
+        format
+      });
+
+      if (!convertResponse.data?.success) {
+        throw new Error('Conversion failed');
+      }
+
+      // Then download the converted file
+      const response = await axios.get(`${API_URL}/convert/${currentFile.id}/${format}`, {
         responseType: 'blob'
       });
 
-      // Check if the response is valid
       if (!response.data || response.data.size === 0) {
         throw new Error('Received empty response from server');
       }
@@ -140,7 +119,6 @@ const ConvertComponent: React.FC = () => {
           : 'application/xml'
       });
 
-      // Create and trigger download
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -150,210 +128,161 @@ const ConvertComponent: React.FC = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      toast.success(`Successfully exported as ${format.toUpperCase()}`);
+      toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
     } catch (error: any) {
       console.error('Export error:', error);
-      let errorMessage = `Failed to export as ${format.toUpperCase()}`;
-      
-      // Extract error message from response if available
-      if (error.response?.data) {
-        try {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const text = reader.result as string;
-            try {
-              const errorData = JSON.parse(text);
-              errorMessage = errorData.detail || errorMessage;
-            } catch (e) {
-              // If JSON parsing fails, use the text as is
-              errorMessage = text || errorMessage;
-            }
-            toast.error(errorMessage);
-          };
-          reader.readAsText(error.response.data);
-        } catch (e) {
-          toast.error(errorMessage);
-        }
-      } else {
-        toast.error(errorMessage);
-      }
+      const errorMessage = error.response?.data?.detail || error.message || 'Export failed';
+      setError(errorMessage);
+      toast.error(`Failed to export: ${errorMessage}`, { id: toastId });
     } finally {
-      setSelectedFormat(null);
-      setConverting(false);
+      setLoading(false);
     }
   };
 
-  const handleMoveToValidate = () => {
+  const handleBack = () => {
+    navigate('/preview', { 
+      state: { 
+        fileId: currentFile?.id,
+        data: tableData
+      }
+    });
+  };
+
+  const handleValidate = async () => {
+    if (!currentFile?.id) {
+      toast.error('No file selected');
+      return;
+    }
+
     if (convertedFormats.size === 0) {
       toast.error('Please convert to at least one format before proceeding');
       return;
     }
-    navigate('/validate', { 
-      state: { 
-        data: tableData,
-        fileId: currentFile?.id,
-        convertedFormats: Array.from(convertedFormats)
-      },
-      replace: true
-    });
-  };
 
-  const handleValidate = () => {
-    if (tableData.length > 0) {
-      navigate('/validate', { 
-        state: { 
-          data: tableData,
-          fileId: currentFile?.id 
-        } 
+    const toastId = toast.loading('Validating data...');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.post(`${API_URL}/validate/${currentFile.id}`, {
+        data: tableData
       });
+
+      if (response.data.status === 'success') {
+        toast.success('Validation successful', { id: toastId });
+        navigate('/validate', { 
+          state: { 
+            fileId: currentFile?.id,
+            data: tableData,
+            convertedFormats: Array.from(convertedFormats),
+            validationResults: response.data
+          }
+        });
+      } else {
+        throw new Error(response.data.detail || 'Validation failed');
+      }
+    } catch (error: any) {
+      console.error('Validation error:', error);
+      const errorMessage = error.response?.data?.detail || error.message || 'Validation failed';
+      setError(errorMessage);
+      toast.error(`Validation failed: ${errorMessage}`, { id: toastId });
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <CircularProgress />
-        <Typography variant="h6" className="mt-4">
-          Converting your document...
-        </Typography>
-        <Typography variant="body2" color="textSecondary" className="mt-2">
-          This may take a few moments
-        </Typography>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <XCircleIcon className="w-16 h-16 text-red-500" />
-        <Typography variant="h6" className="mt-4">
-          Error Loading Document
-        </Typography>
-        <Typography variant="body2" color="textSecondary" className="mt-2">
-          {error}
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => navigate('/')}
-          className="mt-4"
-        >
-          Return to Upload
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Workflow Stepper */}
-      <WorkflowStepper currentStep="convert" />
-
-      {/* User Guidance */}
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md shadow-sm">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-blue-700">
-              Choose your desired export format(s). You can export to multiple formats before proceeding to validation.
-              Once you're done converting, click "Move to Validate" to check and edit your data.
-            </p>
-          </div>
-        </div>
+    <div className="container mx-auto p-6 space-y-8">
+      <div className="flex justify-between items-center">
+        <button
+          onClick={handleBack}
+          className="flex items-center text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeftIcon className="h-5 w-5 mr-2" />
+          Back
+        </button>
+        <h2 className="text-2xl font-semibold text-gray-900">Convert Document</h2>
+        <button
+          onClick={handleValidate}
+          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          disabled={convertedFormats.size === 0}
+        >
+          Validate
+          <ArrowRightIcon className="h-5 w-5 ml-2" />
+        </button>
       </div>
 
-      {/* Current File */}
-      {currentFile && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Current File</h3>
-          <div className="p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <DocumentArrowDownIcon className="h-6 w-6 text-gray-400" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{currentFile.name}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(currentFile.uploadedAt).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Export Format Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {EXPORT_FORMATS.map((format) => (
           <div
             key={format.id}
-            className="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200"
+            className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:border-blue-500 transition-colors"
           >
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <format.icon className={`h-8 w-8 ${
-                  convertedFormats.has(format.id) ? 'text-indigo-600' : 'text-gray-400'
-                }`} />
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <format.icon className="h-8 w-8 text-blue-600 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{format.name}</h3>
+                <p className="text-gray-600 mb-4">{format.description}</p>
               </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  {format.name}
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {format.description}
-                </p>
-              </div>
+              {convertedFormats.has(format.id) && (
+                <CheckCircleIcon className="h-6 w-6 text-green-500" />
+              )}
             </div>
-            <div className="mt-4">
-              <button
-                onClick={() => handleExport(format.id)}
-                disabled={converting && selectedFormat === format.id}
-                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                  convertedFormats.has(format.id)
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-indigo-600 hover:bg-indigo-700'
-                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 w-full justify-center`}
-              >
-                {converting && selectedFormat === format.id ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Converting...
-                  </>
-                ) : (
-                  <>
-                    {convertedFormats.has(format.id) ? (
-                      <>
-                        <CheckCircleIcon className="mr-2 h-5 w-5 text-white" />
-                        Downloaded
-                      </>
-                    ) : (
-                      <>Export as {format.extension.toUpperCase()}</>
-                    )}
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => handleExport(format.id)}
+              disabled={loading}
+              className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            >
+              {loading ? (
+                <ArrowPathIcon className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+                  {convertedFormats.has(format.id) ? 'Download Again' : 'Convert & Download'}
+                </>
+              )}
+            </button>
           </div>
         ))}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-4">
-        <button
-          onClick={handleMoveToValidate}
-          disabled={convertedFormats.size === 0}
-          className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-        >
-          Move to Validate
-          <ArrowRightIcon className="ml-2 h-5 w-5" />
-        </button>
-      </div>
+      {tableData.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Preview Data</h3>
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {Object.keys(tableData[0]).map((header) => (
+                    <th
+                      key={header}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {tableData.slice(0, 5).map((row, index) => (
+                  <tr key={index}>
+                    {Object.values(row).map((value, i) => (
+                      <td key={i} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {value}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {tableData.length > 5 && (
+              <div className="px-6 py-3 bg-gray-50 text-sm text-gray-500">
+                Showing 5 of {tableData.length} rows
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,189 +1,207 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
-import {
-  TableCellsIcon,
-  DocumentTextIcon,
-  CodeBracketIcon,
-  ArrowDownTrayIcon,
-  CheckCircleIcon
-} from '@heroicons/react/24/outline';
+import { FinancialEntry } from '../types/financial';
 import toast from 'react-hot-toast';
+import {
+  ArrowLeftIcon,
+  DocumentArrowDownIcon,
+  TableCellsIcon,
+  DocumentIcon,
+  DocumentTextIcon,
+  ArrowPathIcon,
+} from '@heroicons/react/24/outline';
 
-interface ExportFile {
+interface ExportFormat {
   id: string;
   name: string;
-  type: string;
-  size: number;
-  createdAt: string;
-  formats: {
-    excel?: string;
-    csv?: string;
-    xml?: string;
-  };
+  extension: string;
+  icon: React.ForwardRefExoticComponent<any>;
+  description: string;
 }
 
+const EXPORT_FORMATS: ExportFormat[] = [
+  {
+    id: 'xlsx',
+    name: 'Standard Excel',
+    extension: 'xlsx',
+    icon: TableCellsIcon,
+    description: 'Export as standard Microsoft Excel file'
+  },
+  {
+    id: 'tally',
+    name: 'Tally Excel',
+    extension: 'xlsx',
+    icon: TableCellsIcon,
+    description: 'Export in Tally-compatible Excel format'
+  },
+  {
+    id: 'json',
+    name: 'JSON Data',
+    extension: 'json',
+    icon: DocumentIcon,
+    description: 'Export as JSON for system integrations'
+  },
+  {
+    id: 'pdf',
+    name: 'PDF Summary',
+    extension: 'pdf',
+    icon: DocumentTextIcon,
+    description: 'Export as printable PDF summary'
+  }
+];
+
 const ExportComponent: React.FC = () => {
-  const [files, setFiles] = useState<ExportFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState<{[key: string]: boolean}>({});
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [data, setData] = useState<FinancialEntry[]>([]);
+  const [fileId, setFileId] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [clientName, setClientName] = useState('');
+  const [exportedFormats, setExportedFormats] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchExportedFiles();
-  }, []);
+    const state = location.state as { fileId?: string; data?: FinancialEntry[] };
+    if (!state?.fileId || !state?.data) {
+      toast.error('No data to export');
+      navigate('/', { replace: true });
+      return;
+    }
+    setFileId(state.fileId);
+    setData(state.data);
+  }, [location.state, navigate]);
 
-  const fetchExportedFiles = async () => {
+  const handleExport = async (format: ExportFormat) => {
+    if (!clientName.trim()) {
+      toast.error('Please enter a client name');
+      return;
+    }
+
+    setLoading(true);
+    const toastId = toast.loading(`Exporting as ${format.name}...`);
+
     try {
-      const response = await axios.get(`${API_URL}/exports`);
-      setFiles(response.data.files);
+      const response = await axios.post(
+        `${API_URL}/export/${fileId}/${format.id}`,
+        { clientName },
+        { responseType: 'blob' }
+      );
+
+      if (!response.data || response.data.size === 0) {
+        throw new Error('Received empty response from server');
+      }
+
+      setExportedFormats(prev => new Set([...prev, format.id]));
+
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `${clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${date}_${format.id}.${format.extension}`;
+      
+      const blob = new Blob([response.data], {
+        type: format.extension === 'xlsx'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : format.extension === 'json'
+          ? 'application/json'
+          : format.extension === 'pdf'
+          ? 'application/pdf'
+          : 'application/octet-stream'
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      // Log export action
+      await axios.post(`${API_URL}/audit/log`, {
+        action: 'export',
+        format: format.id,
+        filename,
+        timestamp: new Date().toISOString()
+      });
+
+      toast.success(`Successfully exported as ${format.name}`, { id: toastId });
     } catch (error) {
-      console.error('Error fetching exported files:', error);
-      toast.error('Failed to load exported files');
+      console.error('Export error:', error);
+      toast.error(`Failed to export as ${format.name}`, { id: toastId });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = async (fileId: string, format: 'excel' | 'csv' | 'xml') => {
-    const file = files.find(f => f.id === fileId);
-    if (!file || !file.formats[format]) return;
-
-    setDownloading(prev => ({ ...prev, [`${fileId}-${format}`]: true }));
-
-    try {
-      const response = await axios.get(file.formats[format]!, {
-        responseType: 'blob'
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${file.name}.${format}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.success(`Downloaded ${format.toUpperCase()} successfully`);
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error(`Failed to download ${format.toUpperCase()}`);
-    } finally {
-      setDownloading(prev => ({ ...prev, [`${fileId}-${format}`]: false }));
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const handleBack = () => {
+    navigate('/validate', {
+      state: {
+        fileId,
+        data
+      }
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Exported Files</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Download your converted files in various formats
-          </p>
+    <div className="container mx-auto p-6 space-y-8">
+      <div className="flex justify-between items-center">
+        <button
+          onClick={handleBack}
+          className="flex items-center text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeftIcon className="h-5 w-5 mr-2" />
+          Back
+        </button>
+        <h2 className="text-2xl font-semibold text-gray-900">Export Data</h2>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="mb-6">
+          <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-2">
+            Client Name
+          </label>
+          <input
+            type="text"
+            id="clientName"
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
+            placeholder="Enter client name"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
 
-        <div className="divide-y divide-gray-200">
-          {files.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <ArrowDownTrayIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No exports</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Convert some files first to see them here
-              </p>
-            </div>
-          ) : (
-            files.map((file) => (
-              <div key={file.id} className="px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">
-                      {file.name}
-                    </h4>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {formatDate(file.createdAt)} • {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <div className="flex space-x-3">
-                    {file.formats.excel && (
-                      <button
-                        onClick={() => handleDownload(file.id, 'excel')}
-                        disabled={downloading[`${file.id}-excel`]}
-                        className={`
-                          inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium
-                          ${downloading[`${file.id}-excel`]
-                            ? 'bg-gray-50 text-gray-400'
-                            : 'text-gray-700 hover:bg-gray-50'
-                          }
-                        `}
-                      >
-                        <TableCellsIcon className="h-4 w-4 mr-1.5 text-green-600" />
-                        Excel
-                        {downloading[`${file.id}-excel`] && (
-                          <div className="ml-1.5 animate-spin h-3 w-3 border-2 border-gray-300 rounded-full border-t-gray-600" />
-                        )}
-                      </button>
-                    )}
-                    {file.formats.csv && (
-                      <button
-                        onClick={() => handleDownload(file.id, 'csv')}
-                        disabled={downloading[`${file.id}-csv`]}
-                        className={`
-                          inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium
-                          ${downloading[`${file.id}-csv`]
-                            ? 'bg-gray-50 text-gray-400'
-                            : 'text-gray-700 hover:bg-gray-50'
-                          }
-                        `}
-                      >
-                        <DocumentTextIcon className="h-4 w-4 mr-1.5 text-blue-600" />
-                        CSV
-                        {downloading[`${file.id}-csv`] && (
-                          <div className="ml-1.5 animate-spin h-3 w-3 border-2 border-gray-300 rounded-full border-t-gray-600" />
-                        )}
-                      </button>
-                    )}
-                    {file.formats.xml && (
-                      <button
-                        onClick={() => handleDownload(file.id, 'xml')}
-                        disabled={downloading[`${file.id}-xml`]}
-                        className={`
-                          inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium
-                          ${downloading[`${file.id}-xml`]
-                            ? 'bg-gray-50 text-gray-400'
-                            : 'text-gray-700 hover:bg-gray-50'
-                          }
-                        `}
-                      >
-                        <CodeBracketIcon className="h-4 w-4 mr-1.5 text-purple-600" />
-                        XML
-                        {downloading[`${file.id}-xml`] && (
-                          <div className="ml-1.5 animate-spin h-3 w-3 border-2 border-gray-300 rounded-full border-t-gray-600" />
-                        )}
-                      </button>
-                    )}
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {EXPORT_FORMATS.map((format) => (
+            <div
+              key={format.id}
+              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-blue-500 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <format.icon className="h-8 w-8 text-blue-600 mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">{format.name}</h3>
+                  <p className="text-gray-600 text-sm mt-1">{format.description}</p>
                 </div>
+                {exportedFormats.has(format.id) && (
+                  <span className="text-green-600 text-sm">Exported</span>
+                )}
               </div>
-            ))
-          )}
+              <button
+                onClick={() => handleExport(format)}
+                disabled={loading}
+                className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {loading ? (
+                  <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+                    {exportedFormats.has(format.id) ? 'Export Again' : 'Export'}
+                  </>
+                )}
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>

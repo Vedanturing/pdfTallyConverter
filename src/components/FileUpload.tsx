@@ -26,7 +26,7 @@ const FileUpload: React.FC = () => {
     formData.append('file', file);
 
     try {
-      const response = await axios.post(`${API_URL}/upload`, formData, {
+      const response = await axios.post('/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -46,12 +46,13 @@ const FileUpload: React.FC = () => {
         toast.success('File uploaded successfully!');
         // Wait for a moment to ensure the file is processed
         await new Promise(resolve => setTimeout(resolve, 500));
-        // Navigate to view page with file details
-        navigate('/view', { 
+        // Navigate to preview page with file details
+        navigate('/preview', { 
           state: { 
             fileId: response.data.file_id,
             fileName: file.name,
-            preview: filePreview?.preview
+            preview: filePreview?.preview,
+            currentStep: 1 // Set to Preview step
           }
         });
       } else {

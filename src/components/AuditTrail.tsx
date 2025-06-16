@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import {
-  ClockIcon,
-  UserIcon,
-  DocumentIcon,
-  PencilIcon,
-  TrashIcon,
-  CheckCircleIcon,
-} from '@heroicons/react/24/outline';
+  Clock,
+  User,
+  FileText,
+  Pencil,
+  Trash,
+  CheckCircle,
+  X
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuditStore, { AuditEntry } from '../store/auditStore';
 
@@ -46,13 +47,15 @@ const AuditTrail: React.FC<AuditTrailProps> = ({
   const getActionIcon = (action: AuditEntry['action']) => {
     switch (action) {
       case 'create':
-        return <DocumentIcon className="h-5 w-5 text-green-500" />;
+        return <FileText className="h-5 w-5 text-green-500" />;
       case 'update':
-        return <PencilIcon className="h-5 w-5 text-blue-500" />;
+        return <Pencil className="h-5 w-5 text-blue-500" />;
       case 'delete':
-        return <TrashIcon className="h-5 w-5 text-red-500" />;
+        return <Trash className="h-5 w-5 text-red-500" />;
       case 'validate':
-        return <CheckCircleIcon className="h-5 w-5 text-purple-500" />;
+        return <CheckCircle className="h-5 w-5 text-purple-500" />;
+      case 'add_note':
+        return <FileText className="h-5 w-5 text-yellow-500" />;
     }
   };
 
@@ -66,6 +69,8 @@ const AuditTrail: React.FC<AuditTrailProps> = ({
         return `Deleted ${entry.entityType}`;
       case 'validate':
         return `Validated ${entry.entityType}`;
+      case 'add_note':
+        return `Added note to ${entry.entityType}`;
     }
   };
 
@@ -86,9 +91,7 @@ const AuditTrail: React.FC<AuditTrailProps> = ({
               className="text-gray-400 hover:text-gray-500"
             >
               <span className="sr-only">Close</span>
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="h-6 w-6" />
             </button>
           )}
         </div>
@@ -148,14 +151,14 @@ const AuditTrail: React.FC<AuditTrailProps> = ({
                         {getActionText(entry)}
                       </p>
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <ClockIcon className="h-4 w-4" />
-                        <span>{format(entry.timestamp, 'MMM d, yyyy HH:mm:ss')}</span>
+                        <Clock className="h-4 w-4" />
+                        <span>{format(new Date(entry.timestamp), 'MMM d, yyyy HH:mm:ss')}</span>
                       </div>
                     </div>
 
                     <div className="mt-2">
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <UserIcon className="h-4 w-4" />
+                        <User className="h-4 w-4" />
                         <span>User: {entry.userId}</span>
                       </div>
 
@@ -182,13 +185,19 @@ const AuditTrail: React.FC<AuditTrailProps> = ({
                               ? 'text-green-600'
                               : 'text-red-600'
                           }`}>
-                            <CheckCircleIcon className="h-4 w-4" />
+                            <CheckCircle className="h-4 w-4" />
                             <span>
                               {entry.validationResult.isValid
                                 ? 'Valid'
                                 : `Invalid (${entry.validationResult.errorCount} errors, ${entry.validationResult.warningCount} warnings)`}
                             </span>
                           </div>
+                        </div>
+                      )}
+
+                      {entry.note && (
+                        <div className="mt-2 text-sm text-gray-600">
+                          <p className="italic">{entry.note}</p>
                         </div>
                       )}
                     </div>
