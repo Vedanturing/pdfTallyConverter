@@ -43,10 +43,20 @@ def validate_numeric(value: str) -> Dict[str, Any]:
             "fix": cleaned if original != cleaned else None
         }
 
-def validate_date(value: str) -> Dict[str, Any]:
+def validate_date(value: Any) -> Dict[str, Any]:
     """Validate date formats"""
     if not value:
         return {"valid": False, "error": "Missing date", "severity": "critical", "fix": None}
+    
+    # Handle pandas Timestamp objects
+    if hasattr(value, 'strftime'):
+        return {
+            "valid": True,
+            "fix": value.strftime("%Y-%m-%d")
+        }
+    
+    # Convert to string if not already
+    value = str(value)
     
     date_formats = [
         "%Y-%m-%d",
@@ -163,18 +173,95 @@ def validate_table_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     
     return validation_results
 
-def get_validation_summary(validation_results: List[Dict[str, Any]]) -> Dict[str, int]:
-    """Get summary of validation issues"""
+def get_validation_summary(validation_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Generate a summary of validation results.
+    Can handle both validation results and raw data.
+    """
     summary = {
         "critical": 0,
         "warning": 0,
-        "info": 0
+        "info": 0,
+        "total_rows": 0,
+        "empty_fields": [],
+        "numeric_issues": [],
+        "date_issues": [],
+        "duplicate_entries": []
     }
-    
-    for result in validation_results:
-        for issue in result["issues"]:
-            summary[issue["severity"]] += 1
-    
+
+    # Check if we're dealing with validation results or raw data
+    if validation_results and isinstance(validation_results[0], dict) and "issues" in validation_results[0]:
+        # Handle validation results format
+        for result in validation_results:
+            for issue in result.get("issues", []):
+                if isinstance(issue, dict) and "severity" in issue:
+                    summary[issue["severity"]] += 1
+    else:
+        # Handle raw data format
+        summary["total_rows"] = len(validation_results)
+        seen_entries = set()
+
+        for idx, row in enumerate(validation_results):
+            if not isinstance(row, dict):
+                continue
+
+            # Check for empty fields
+            empty_fields = []
+            for k, v in row.items():
+                if v is None or (isinstance(v, str) and not v.strip()):
+                    empty_fields.append(k)
+            
+            if empty_fields:
+                summary["empty_fields"].append({
+                    "row": idx + 1,
+                    "fields": empty_fields
+                })
+                summary["warning"] += len(empty_fields)
+
+            # Check numeric fields
+            for field in ['amount', 'balance']:
+                if field in row:
+                    try:
+                        float(str(row[field]).replace(',', ''))
+                    except (ValueError, TypeError):
+                        summary["numeric_issues"].append({
+                            "row": idx + 1,
+                            "field": field,
+                            "value": row[field]
+                        })
+                        summary["critical"] += 1
+
+            # Check date fields
+            if 'date' in row:
+                try:
+                    if isinstance(row['date'], str):
+                        datetime.strptime(row['date'], "%Y-%m-%d")
+                    elif isinstance(row['date'], (datetime, pd.Timestamp)):
+                        pass  # These are valid date types
+                    else:
+                        raise ValueError("Invalid date format")
+                except (ValueError, TypeError):
+                    summary["date_issues"].append({
+                        "row": idx + 1,
+                        "value": str(row['date'])
+                    })
+                    summary["critical"] += 1
+
+            # Check for duplicates
+            if all(key in row for key in ['date', 'amount', 'description']):
+                entry_key = f"{row['date']}_{row['amount']}_{row['description']}"
+                if entry_key in seen_entries:
+                    summary["duplicate_entries"].append({
+                        "row": idx + 1,
+                        "entry": {
+                            "date": row['date'],
+                            "amount": row['amount'],
+                            "description": row['description']
+                        }
+                    })
+                    summary["warning"] += 1
+                seen_entries.add(entry_key)
+
     return summary
 
 class ValidationError(Exception):

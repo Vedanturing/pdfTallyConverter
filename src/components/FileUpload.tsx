@@ -17,42 +17,50 @@ const FileUpload: React.FC = () => {
   const [filePreview, setFilePreview] = useState<FilePreview | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const navigate = useNavigate();
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, password?: string) => {
     setIsUploading(true);
     setUploadProgress(0);
+
     const formData = new FormData();
     formData.append('file', file);
+    if (password) {
+      formData.append('password', password);
+    }
 
     try {
-      const response = await axios.post('/api/upload', formData, {
+      const response = await axios.post(`${API_URL}/upload`, formData, {
+        timeout: 300000, // Increase timeout to 5 minutes
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         onUploadProgress: (progressEvent) => {
-          const progress = progressEvent.total
-            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
-            : 0;
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / (progressEvent.total || file.size)
+          );
           setUploadProgress(progress);
-        },
-        timeout: 120000, // Increased to 120 seconds
-        validateStatus: function (status) {
-          return status >= 200 && status < 300;
         },
       });
 
-      if (response.data.status === 'success') {
+      if (response.data.requires_password) {
+        setPendingFile(file);
+        setShowPasswordModal(true);
+        return;
+      }
+
+      if (response.data.file_id) {
         toast.success('File uploaded successfully!');
-        // Wait for a moment to ensure the file is processed
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // Navigate to preview page with file details
         navigate('/preview', { 
           state: { 
             fileId: response.data.file_id,
             fileName: file.name,
             preview: filePreview?.preview,
-            currentStep: 1 // Set to Preview step
+            currentStep: 1
           }
         });
       } else {
@@ -61,18 +69,47 @@ const FileUpload: React.FC = () => {
     } catch (error: any) {
       console.error('Upload error:', error);
       let errorMessage = 'Error uploading file. Please try again.';
+      
       if (error.code === 'ECONNABORTED') {
-        errorMessage = 'Upload timed out. Please try again with a smaller file or check your connection.';
+        errorMessage = 'Upload timed out. The file might be too large or your connection might be slow. Please try again with a smaller file or check your connection.';
+      } else if (error.response?.status === 401 && error.response?.data?.requires_password) {
+        setPendingFile(file);
+        setShowPasswordModal(true);
+        return;
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
+      
       toast.error(errorMessage);
       setFilePreview(null);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+    }
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!pendingFile || !password.trim()) {
+      setPasswordError('Please enter a password');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      await handleUpload(pendingFile, password);
+      setShowPasswordModal(false);
+      setPassword('');
+      setPendingFile(null);
+      setPasswordError('');
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        setPasswordError('Incorrect password. Please try again.');
+      } else {
+        setPasswordError('Error processing file. Please try again.');
+      }
+      console.error('Password submission error:', error);
     }
   };
 
@@ -105,8 +142,14 @@ const FileUpload: React.FC = () => {
           numPages: pdf.numPages,
           currentPage: 1
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading PDF:', error);
+        // Check if error is due to password protection
+        if (error.message?.includes('password')) {
+          setPendingFile(file);
+          setShowPasswordModal(true);
+          return;
+        }
         toast.error('Error loading PDF preview');
         return;
       }
@@ -136,6 +179,43 @@ const FileUpload: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <Toaster position="top-right" />
+      
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">PDF Password Required</h3>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter PDF password"
+              className="w-full p-2 border rounded mb-4"
+            />
+            {passwordError && (
+              <p className="text-red-500 text-sm mb-4">{passwordError}</p>
+            )}
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                  setPendingFile(null);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div
         {...getRootProps()}

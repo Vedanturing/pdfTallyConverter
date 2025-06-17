@@ -61,6 +61,9 @@ const ConvertComponent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     const state = location.state as { fileId?: string, data?: FinancialEntry[] };
@@ -94,21 +97,27 @@ const ConvertComponent: React.FC = () => {
       // First, ensure the file is converted
       const convertResponse = await axios.post(`${API_URL}/convert/${currentFile.id}`);
 
-      if (!convertResponse.data?.success) {
-        throw new Error(convertResponse.data?.message || 'Conversion failed');
-      }
-
       // Then download the converted file
       const downloadResponse = await axios.get(`${API_URL}/api/convert/${currentFile.id}/${format}`, {
-        responseType: 'blob'
+        responseType: 'blob',
+        headers: {
+          'Accept': format === 'xlsx' 
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : format === 'csv'
+            ? 'text/csv'
+            : 'application/xml'
+        }
       });
 
+      // Check if we got a valid blob response
       if (!downloadResponse.data || downloadResponse.data.size === 0) {
         throw new Error('Received empty response from server');
       }
 
+      // Update the list of converted formats
       setConvertedFormats(prev => new Set([...prev, format]));
       
+      // Create and trigger download
       const blob = new Blob([downloadResponse.data], { 
         type: format === 'xlsx' 
           ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -117,14 +126,22 @@ const ConvertComponent: React.FC = () => {
           : 'application/xml'
       });
 
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
       a.download = `converted-file.${format}`;
+      
+      // Trigger download
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      
+      // Cleanup after a short delay to ensure download starts
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 200);
 
       // Update table data if available
       if (convertResponse.data?.data?.rows) {
@@ -134,9 +151,14 @@ const ConvertComponent: React.FC = () => {
       toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
     } catch (error: any) {
       console.error('Export error:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Export failed';
-      setError(errorMessage);
-      toast.error(`Failed to export: ${errorMessage}`, { id: toastId });
+      // Only treat actual errors as errors
+      if (error.message === 'File converted successfully') {
+        toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
+      } else {
+        const errorMessage = error.response?.data?.detail || error.message || 'Export failed';
+        setError(errorMessage);
+        toast.error(`Failed to export: ${errorMessage}`, { id: toastId });
+      }
     } finally {
       setLoading(false);
     }
@@ -151,7 +173,12 @@ const ConvertComponent: React.FC = () => {
     });
   };
 
-  const handleValidate = async () => {
+  const handlePasswordSubmit = async () => {
+    setPasswordError('');
+    await handleValidate(password);
+  };
+
+  const handleValidate = async (pdfPassword?: string) => {
     if (!currentFile?.id) {
       toast.error('No file selected');
       return;
@@ -167,28 +194,91 @@ const ConvertComponent: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post(`${API_URL}/validate/${currentFile.id}`, {
-        data: tableData
+      // Format the data properly for validation
+      const sanitizedData = tableData.map(row => {
+        const sanitizedRow: Record<string, any> = {};
+        Object.entries(row).forEach(([key, value]) => {
+          // Handle null/undefined
+          if (value === null || value === undefined) {
+            sanitizedRow[key] = '';
+          }
+          // Handle date objects and timestamps
+          else if (value && typeof value === 'object' && 
+                   ('toISOString' in value || 
+                    (typeof (value as any).toDate === 'function'))) {
+            try {
+              // Handle both native Date objects and Timestamp objects
+              const dateValue = ('toDate' in value) ? (value as any).toDate() : value;
+              sanitizedRow[key] = dateValue.toISOString().split('T')[0];
+            } catch {
+              sanitizedRow[key] = '';
+            }
+          }
+          // Handle string dates
+          else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+            sanitizedRow[key] = value.split('T')[0];
+          }
+          // Handle numbers
+          else if (typeof value === 'number') {
+            sanitizedRow[key] = value.toString();
+          }
+          // Everything else as string
+          else {
+            sanitizedRow[key] = String(value);
+          }
+        });
+        return sanitizedRow;
       });
 
-      if (response.data.status === 'success') {
-        toast.success('Validation successful', { id: toastId });
+      const validationPayload = {
+        data: sanitizedData,
+        formats: Array.from(convertedFormats),
+        fileId: currentFile.id,
+        password: pdfPassword || undefined
+      };
+
+      const response = await axios.post(`${API_URL}/validate/${currentFile.id}`, validationPayload);
+
+      if (response.data?.validationResults) {
+        toast.success('Validation complete', { id: toastId });
+        setShowPasswordModal(false);
         navigate('/validate', { 
           state: { 
             fileId: currentFile?.id,
             data: tableData,
             convertedFormats: Array.from(convertedFormats),
-            validationResults: response.data
+            validationResults: response.data.validationResults
+          }
+        });
+      } else if (response.data?.status === "success" && response.data?.message) {
+        toast.success(response.data.message, { id: toastId });
+        setShowPasswordModal(false);
+        navigate('/validate', { 
+          state: { 
+            fileId: currentFile?.id,
+            data: tableData,
+            convertedFormats: Array.from(convertedFormats),
+            validationResults: response.data.validationResults || []
           }
         });
       } else {
-        throw new Error(response.data.detail || 'Validation failed');
+        throw new Error(response.data?.message || 'Validation failed');
       }
     } catch (error: any) {
       console.error('Validation error:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Validation failed';
-      setError(errorMessage);
-      toast.error(`Validation failed: ${errorMessage}`, { id: toastId });
+      const errorMessage = error.response?.data?.detail || error.response?.data?.message || error.message || 'Validation failed';
+      
+      // Handle specific error cases
+      if (error.response?.status === 401 && error.response?.data?.requires_password) {
+        setShowPasswordModal(true);
+        toast.error('PDF is password protected. Please enter the password.', { id: toastId });
+      } else if (error.response?.status === 422) {
+        setError(errorMessage);
+        toast.error(`Data validation error: ${errorMessage}`, { id: toastId });
+      } else {
+        setError(errorMessage);
+        toast.error(`Validation failed: ${errorMessage}`, { id: toastId });
+      }
     } finally {
       setLoading(false);
     }
@@ -206,14 +296,56 @@ const ConvertComponent: React.FC = () => {
         </button>
         <h2 className="text-2xl font-semibold text-gray-900">Convert Document</h2>
         <button
-          onClick={handleValidate}
+          onClick={() => handleValidate()}
           className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          disabled={convertedFormats.size === 0}
+          disabled={convertedFormats.size === 0 || loading}
         >
-          Validate
-          <ArrowRightIcon className="h-5 w-5 ml-2" />
+          {loading ? (
+            <ArrowPathIcon className="h-5 w-5 animate-spin" />
+          ) : (
+            <>
+              Validate
+              <ArrowRightIcon className="h-5 w-5 ml-2" />
+            </>
+          )}
         </button>
       </div>
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">PDF Password Required</h3>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter PDF password"
+              className="w-full p-2 border rounded mb-4"
+            />
+            {passwordError && (
+              <p className="text-red-500 text-sm mb-4">{passwordError}</p>
+            )}
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {EXPORT_FORMATS.map((format) => (
