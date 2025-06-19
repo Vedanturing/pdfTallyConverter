@@ -69,6 +69,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           pdfjs: ['pdfjs-dist'],
+          'react-pdf': ['react-pdf'],
         },
       },
     },
@@ -77,7 +78,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react-pdf'],
+    include: ['react-pdf', 'pdfjs-dist'],
   },
   worker: {
     format: 'es'

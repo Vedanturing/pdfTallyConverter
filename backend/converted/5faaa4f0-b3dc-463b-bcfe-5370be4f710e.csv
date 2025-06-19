@@ -1,0 +1,13 @@
+date,description,amount_(inr),balance_(inr)
+2025-01-04,ATM Withdrawal,1338.0,41338.0
+2025-04-04,Online Transfer,-384.43,40953.57
+2025-06-04,EMI Payment,4905.87,45859.44
+2025-09-04,Salary Credit,4117.86,49977.3
+2025-10-04,Utility Bill,3913.89,53891.19
+2025-11-04,Utility Bill,5376.63,59267.82
+2025-12-04,EMI Payment,4281.47,63549.29
+2025-04-13,Salary Credit,523.05,64072.34
+2025-04-15,Utility Bill,5356.32,69428.66
+2025-04-16,Salary Credit,3520.76,72949.42
+2025-04-17,Salary Credit,1948.19,74897.61
+2025-04-20,EMI Payment,2527.27,77424.88

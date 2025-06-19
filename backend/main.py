@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, HTTPException, File, Request, Query, Body, Form
+from fastapi import FastAPI, UploadFile, HTTPException, File, Request, Query, Body, Form, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -35,6 +35,7 @@ from bank_matcher import BankMatcher
 from gst_helper import GSTHelper
 import fitz
 from PyPDF2 import PdfReader
+from audit_logger import audit_logger
 
 # Configure logging
 logging.basicConfig(
@@ -69,18 +70,29 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    logger.info(f"Incoming request: {request.method} {request.url}")
-    try:
-        response = await call_next(request)
-        logger.info(f"Request completed: {response.status_code}")
-        return response
-    except Exception as e:
-        logger.error(f"Request failed: {str(e)}")
-        logger.error(traceback.format_exc())
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Internal server error", "error": str(e)}
+    # Get the start timestamp
+    start_time = datetime.now()
+    
+    # Process the request
+    response = await call_next(request)
+    
+    # Log the request after it's processed
+    duration = (datetime.now() - start_time).total_seconds()
+    
+    # Only log API endpoints, skip static files
+    if request.url.path.startswith("/api") or request.url.path in ["/upload", "/convert", "/validate"]:
+        audit_logger.log_action(
+            action_type="api_request",
+            summary=f"{request.method} {request.url.path}",
+            metadata={
+                "duration": duration,
+                "status_code": response.status_code,
+                "client_host": request.client.host if request.client else None,
+                "user_agent": request.headers.get("user-agent")
+            }
         )
+    
+    return response
 
 @app.get("/test")
 async def test():
@@ -485,34 +497,28 @@ async def upload_file(
     file: UploadFile = File(...),
     password: str = Form(None)
 ):
-    """Handle file upload with optional password for PDF files"""
-    temp_path = None
-    file_path = None
-    
+    """
+    Upload a file and process it
+    """
     try:
-        # Validate file size (limit to 50MB)
-        file_size = 0
-        chunk_size = 1024 * 1024  # 1MB
+        # Create uploads directory if it doesn't exist
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
         
-        # Create a temporary file to stream the content
+        # Generate unique file ID
         file_id = str(uuid.uuid4())
-        file_extension = os.path.splitext(file.filename)[1].lower()
-        if not file_extension:
-            file_extension = '.pdf'  # Default to PDF if no extension
         
-        temp_path = os.path.join(UPLOAD_DIR, f"{file_id}_temp{file_extension}")
+        # Get file extension
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        
+        # Create temporary file path
+        temp_path = os.path.join(UPLOAD_DIR, f"temp_{file_id}{file_extension}")
+        
+        # Create final file path
         file_path = os.path.join(UPLOAD_DIR, f"{file_id}{file_extension}")
         
-        # Stream file to disk in chunks
-        async with aiofiles.open(temp_path, 'wb') as out_file:
-            while chunk := await file.read(chunk_size):
-                file_size += len(chunk)
-                if file_size > 50 * 1024 * 1024:  # 50MB limit
-                    raise HTTPException(
-                        status_code=413,
-                        detail="File too large. Maximum size is 50MB."
-                    )
-                await out_file.write(chunk)
+        # Save uploaded file to temporary location
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
         
         # Validate file is a PDF if it has .pdf extension
         if file_extension == '.pdf':
@@ -523,6 +529,8 @@ async def upload_file(
                     doc = fitz.open(temp_path)
                     if doc.needs_pass:
                         if not password:
+                            if os.path.exists(temp_path):
+                                os.remove(temp_path)
                             return JSONResponse(
                                 status_code=401,
                                 content={
@@ -531,6 +539,8 @@ async def upload_file(
                                 }
                             )
                         if not doc.authenticate(password):
+                            if os.path.exists(temp_path):
+                                os.remove(temp_path)
                             return JSONResponse(
                                 status_code=401,
                                 content={
@@ -553,6 +563,8 @@ async def upload_file(
                         pdf_reader = PdfReader(pdf_file)
                         if pdf_reader.is_encrypted:
                             if not password:
+                                if os.path.exists(temp_path):
+                                    os.remove(temp_path)
                                 return JSONResponse(
                                     status_code=401,
                                     content={
@@ -563,6 +575,8 @@ async def upload_file(
                             try:
                                 pdf_reader.decrypt(password)
                             except:
+                                if os.path.exists(temp_path):
+                                    os.remove(temp_path)
                                 return JSONResponse(
                                     status_code=401,
                                     content={
@@ -575,6 +589,8 @@ async def upload_file(
                             raise ValueError("PDF file has no pages")
                 except Exception as e:
                     logger.error(f"PDF validation failed: {str(e)}")
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
                     raise HTTPException(
                         status_code=400,
                         detail="Invalid or corrupted PDF file"
@@ -584,26 +600,20 @@ async def upload_file(
         # Move the temp file to final location
         os.rename(temp_path, file_path)
         
+        # Return success response
         return {
             "file_id": file_id,
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "size": file_size
+            "message": "File uploaded successfully"
         }
         
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Upload error: {str(e)}")
-        logger.error(traceback.format_exc())
-        # Clean up temporary files
-        if temp_path and os.path.exists(temp_path):
+        # Clean up temporary file if it exists
+        if os.path.exists(temp_path):
             os.remove(temp_path)
-        if file_path and os.path.exists(file_path):
-            os.remove(file_path)
+        logger.error(f"Upload error: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error uploading file: {str(e)}"
+            detail=str(e)
         )
 
 @app.post("/convert/{file_id}")
@@ -1619,6 +1629,126 @@ async def validate_gstin(gstin: str = Body(..., embed=True)):
         raise HTTPException(
             status_code=500,
             detail=f"Error validating GSTIN: {str(e)}"
+        )
+
+@app.get("/file/{file_id}")
+async def get_file(file_id: str, convert: bool = Query(False)):
+    """Get file by ID and optionally convert it to table format"""
+    try:
+        # Check all possible file extensions
+        for ext in ['.pdf', '.png', '.jpg', '.jpeg']:
+            file_path = os.path.join(UPLOAD_DIR, f"{file_id}{ext}")
+            if os.path.exists(file_path):
+                if not convert:
+                    # Return raw file if conversion not requested
+                    mime_type, _ = mimetypes.guess_type(file_path)
+                    if not mime_type:
+                        mime_type = 'application/octet-stream'
+                    
+                    return FileResponse(
+                        file_path,
+                        media_type=mime_type,
+                        filename=os.path.basename(file_path)
+                    )
+                else:
+                    # Convert file to table format
+                    try:
+                        if ext.lower() == '.pdf':
+                            df = extract_tables_from_pdf(file_path)
+                        else:
+                            df = process_image_ocr(file_path)
+                        
+                        # Convert DataFrame to response format
+                        if df is not None and not df.empty:
+                            rows = df.to_dict('records')
+                            headers = df.columns.tolist()
+                            
+                            return {
+                                "success": True,
+                                "data": {
+                                    "rows": rows,
+                                    "headers": headers
+                                }
+                            }
+                        else:
+                            raise ConversionError("No data extracted from file")
+                            
+                    except Exception as e:
+                        logger.error(f"Error converting file: {str(e)}")
+                        logger.error(traceback.format_exc())
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Error converting file: {str(e)}"
+                        )
+        
+        # If no file is found with any extension
+        logger.error(f"File not found: {file_id}")
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving file: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error serving file: {str(e)}"
+        )
+
+@app.get("/audit-logs")
+async def get_audit_logs(
+    limit: Optional[int] = None,
+    action_type: Optional[str] = None,
+    user_id: Optional[str] = None
+):
+    """Get audit logs with optional filtering"""
+    return audit_logger.get_logs(limit=limit, action_type=action_type, user_id=user_id)
+
+@app.post("/audit-logs")
+async def create_audit_log(
+    action_type: str = Body(...),
+    summary: str = Body(...),
+    user_id: Optional[str] = Body(None),
+    metadata: Optional[Dict[str, Any]] = Body(None)
+):
+    """Create a new audit log entry"""
+    return audit_logger.log_action(
+        action_type=action_type,
+        summary=summary,
+        user_id=user_id,
+        metadata=metadata
+    )
+
+@app.get("/missed-rows/{file_id}")
+async def get_missed_rows(file_id: str):
+    """Get rows that failed to parse from bank statement"""
+    try:
+        # Get the file path
+        file_path = None
+        for ext in ['.pdf', '.png', '.jpg', '.jpeg']:
+            path = os.path.join(UPLOAD_DIR, f"{file_id}{ext}")
+            if os.path.exists(path):
+                file_path = path
+                break
+        
+        if not file_path:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Process the file and get missed rows
+        parser = BankStatementParser()
+        _, missed_rows = parser.process_bank_statement(file_path)
+        
+        return {
+            "success": True,
+            "missed_rows": missed_rows
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting missed rows: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting missed rows: {str(e)}"
         )
 
 if __name__ == "__main__":

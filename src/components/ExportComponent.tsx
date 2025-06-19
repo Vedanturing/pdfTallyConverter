@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
-import { FinancialEntry } from '../types/financial';
+import { FinancialEntry, ValidationSummary } from '../types/financial';
 import toast from 'react-hot-toast';
 import {
   ArrowLeftIcon,
@@ -12,6 +12,7 @@ import {
   DocumentTextIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
+import ExportSummaryModal from './ExportSummaryModal';
 
 interface ExportFormat {
   id: string;
@@ -60,9 +61,20 @@ const ExportComponent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [clientName, setClientName] = useState('');
   const [exportedFormats, setExportedFormats] = useState<Set<string>>(new Set());
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState<{
+    fileName: string;
+    fileType: string;
+    data: FinancialEntry[];
+    validationSummary?: ValidationSummary;
+    exportFormat: string;
+    clientName: string;
+    exportSuccess: boolean;
+    downloadPath?: string;
+  } | null>(null);
 
   useEffect(() => {
-    const state = location.state as { fileId?: string; data?: FinancialEntry[] };
+    const state = location.state as { fileId?: string; data?: FinancialEntry[]; validationSummary?: ValidationSummary };
     if (!state?.fileId || !state?.data) {
       toast.error('No data to export');
       navigate('/', { replace: true });
@@ -125,9 +137,34 @@ const ExportComponent: React.FC = () => {
       });
 
       toast.success(`Successfully exported as ${format.name}`, { id: toastId });
+
+      // Show export summary
+      setSummaryData({
+        fileName: filename,
+        fileType: location.state?.fileType || 'Unknown',
+        data,
+        validationSummary: location.state?.validationSummary,
+        exportFormat: format.name,
+        clientName,
+        exportSuccess: true,
+        downloadPath: filename
+      });
+      setShowSummary(true);
     } catch (error) {
       console.error('Export error:', error);
       toast.error(`Failed to export as ${format.name}`, { id: toastId });
+
+      // Show error summary
+      setSummaryData({
+        fileName: `${clientName}_${format.id}.${format.extension}`,
+        fileType: location.state?.fileType || 'Unknown',
+        data,
+        validationSummary: location.state?.validationSummary,
+        exportFormat: format.name,
+        clientName,
+        exportSuccess: false
+      });
+      setShowSummary(true);
     } finally {
       setLoading(false);
     }
@@ -204,6 +241,14 @@ const ExportComponent: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {summaryData && (
+        <ExportSummaryModal
+          isOpen={showSummary}
+          onClose={() => setShowSummary(false)}
+          exportData={summaryData}
+        />
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, Page } from 'react-pdf';
 import { API_URL } from '../config';
 import {
   ChevronLeftIcon,
@@ -12,12 +12,14 @@ import {
   DocumentIcon,
   ArrowDownTrayIcon,
   ArrowLeftIcon,
+  ClipboardIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import FinancialTable from './FinancialTable';
 import { initPdfWorker, cleanupPdfWorker } from '../utils/pdfjs-config';
 import { FinancialEntry } from '../types/financial';
+import AuditTrailSidebar from './AuditTrail/AuditTrailSidebar';
 
 interface ConversionResponse {
   rows: Record<string, any>[];
@@ -47,64 +49,106 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
   const isMounted = useRef(true);
   const [scale, setScale] = useState<number>(1.5);
   const [isFirstConvert, setIsFirstConvert] = useState(true);
+  const [isAuditTrailOpen, setIsAuditTrailOpen] = useState(false);
 
   // Initialize PDF worker when component mounts
   useEffect(() => {
     initPdfWorker();
     return () => {
       cleanupPdfWorker();
+      if (currentBlobUrl.current) {
+        URL.revokeObjectURL(currentBlobUrl.current);
+        currentBlobUrl.current = null;
+      }
     };
   }, []);
 
+  const logAction = useCallback(async (actionType: string, summary: string, metadata?: any) => {
+    try {
+      await axios.post(`${API_URL}/audit-logs`, {
+        action_type: actionType,
+        summary,
+        metadata
+      });
+    } catch (error) {
+      console.error('Failed to log action:', error);
+    }
+  }, []);
+
   const loadFile = useCallback(async (fileId: string) => {
-    if (!isMounted.current) return;
-    
     setLoading(true);
     setError(null);
-    setFileUrl(null); // Clear previous file URL
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
 
-    // Cleanup previous blob URL if it exists
-    if (currentBlobUrl.current) {
-      window.URL.revokeObjectURL(currentBlobUrl.current);
-      currentBlobUrl.current = null;
-    }
+    const tryLoadFile = async (): Promise<void> => {
+      try {
+        const response = await axios.get(`${API_URL}/file/${fileId}`, {
+          responseType: 'blob',
+          headers: {
+            'Accept': 'application/pdf,image/*'
+          }
+        });
 
-    try {
-      console.log('Fetching file with ID:', fileId);
-      const response = await axios.get(`${API_URL}/file/${fileId}`, {
-        responseType: 'blob'
-      });
-      
-      if (!isMounted.current) return;
+        if (currentBlobUrl.current) {
+          window.URL.revokeObjectURL(currentBlobUrl.current);
+        }
 
-      const type = response.headers['content-type'];
-      const isPdf = type === 'application/pdf';
-      setFileType(isPdf ? 'pdf' : 'image');
-      
-      const blob = new Blob([response.data], { type });
-      const url = window.URL.createObjectURL(blob);
-      currentBlobUrl.current = url;
-      
-      // Small delay to ensure cleanup is complete
-      setTimeout(() => {
+        const type = response.headers['content-type'];
+        const isPdf = type === 'application/pdf';
+        setFileType(isPdf ? 'pdf' : 'image');
+
+        const url = window.URL.createObjectURL(new Blob([response.data], { type }));
+        currentBlobUrl.current = url;
+
+        // Add a small delay to ensure the blob URL is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         if (isMounted.current) {
           setFileUrl(url);
           setPageNumber(1);
+          setLoading(false);
+          setError(null);
         }
-      }, 100);
-    } catch (error) {
-      if (!isMounted.current) return;
-      
-      console.error('Error loading file:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load file';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      navigate('/', { replace: true });
-    } finally {
-      if (isMounted.current) {
-        setLoading(false);
+
+        // Start data conversion
+        convertFile(fileId).catch(console.error);
+
+      } catch (error: any) {
+        console.error('Error loading file:', error);
+        
+        if (error.response?.status === 404) {
+          // If file is not found and we haven't exceeded retries
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`Retrying (${retryCount}/${maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            return tryLoadFile();
+          }
+        }
+
+        if (isMounted.current) {
+          const errorMessage = error.response?.status === 404
+            ? 'File not found. The file may still be processing.'
+            : error.response?.data?.detail || error.message || 'Failed to load file';
+          
+          setError(errorMessage);
+          toast.error(errorMessage);
+          
+          if (error.response?.status === 404) {
+            // Only navigate away on 404 after retries
+            navigate('/', { replace: true });
+          }
+        }
+      } finally {
+        if (isMounted.current) {
+          setLoading(false);
+        }
       }
-    }
+    };
+
+    await tryLoadFile();
   }, [navigate]);
 
   useEffect(() => {
@@ -128,7 +172,7 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
       if (isMounted.current) {
         loadFile(state.fileId!);
       }
-    }, 1000); // 1 second delay
+    }, 500); // Reduced to 500ms since we have retry logic
 
     return () => {
       isMounted.current = false;
@@ -170,11 +214,11 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
   const convertFile = async (fileId: string, conversionToast?: string) => {
     setConversionLoading(true);
     try {
-      // First, try to get the data
-      const response = await axios.get(`${API_URL}/get-data/${fileId}`);
+      // First, try to get the data with conversion
+      const response = await axios.get(`${API_URL}/file/${fileId}?convert=true`);
       
-      if (response.data && (response.data.rows || response.data.data?.rows)) {
-        const rows = response.data.rows || response.data.data.rows;
+      if (response.data?.success && response.data?.data?.rows) {
+        const rows = response.data.data.rows;
         
         // Convert the data to our format
         const convertedRows = rows.map((row: any, index: number) => ({
@@ -194,6 +238,12 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
         setConvertedData(convertedRows);
         setActiveTab('table');
         
+        // Log the conversion action
+        await logAction('convert', `Converted file ${fileId} to table format`, {
+          rowCount: convertedRows.length,
+          fileId
+        });
+        
         if (conversionToast) {
           toast.success('Document converted successfully', {
             id: conversionToast
@@ -206,6 +256,12 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
       console.error('Error converting file:', error);
       const errorMessage = error.response?.data?.detail || error.message || 'Failed to convert file';
       
+      // Log the error
+      await logAction('error', `Failed to convert file ${fileId}`, {
+        error: errorMessage,
+        fileId
+      });
+      
       if (conversionToast) {
         toast.error(errorMessage, {
           id: conversionToast
@@ -213,25 +269,23 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
       } else {
         toast.error(errorMessage);
       }
-      throw error; // Re-throw to handle in the calling function
+      throw error;
     } finally {
       setConversionLoading(false);
     }
   };
 
-  const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
-    console.log('PDF loaded successfully with', numPages, 'pages');
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setLoading(false);
-    setError(null);
-  }, []);
+  };
 
-  const onDocumentLoadError = useCallback((error: Error) => {
+  const onDocumentLoadError = (error: Error) => {
     console.error('Error loading PDF:', error);
     setError(error.message);
     setLoading(false);
-    toast.error('Failed to load PDF document');
-  }, []);
+    toast.error(`Error loading PDF: ${error.message}`);
+  };
 
   const changePage = (offset: number) => {
     if (!numPages) return;
@@ -316,34 +370,48 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
           <ArrowLeftIcon className="h-5 w-5 mr-2" />
           Back
         </button>
-        <div className="flex space-x-4">
+        <div className="flex items-center space-x-4">
           <button
-            onClick={() => setActiveTab('document')}
-            className={`flex items-center px-4 py-2 rounded-lg ${
-              activeTab === 'document' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'
-            }`}
+            onClick={() => setIsAuditTrailOpen(true)}
+            className="flex items-center px-3 py-1 text-gray-600 hover:text-gray-900 border rounded-lg"
           >
-            <DocumentIcon className="h-5 w-5 mr-2" />
-            Document
+            <ClipboardIcon className="h-5 w-5 mr-2" />
+            Audit Trail
           </button>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setActiveTab('document')}
+              className={`flex items-center px-4 py-2 rounded-lg ${
+                activeTab === 'document' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'
+              }`}
+            >
+              <DocumentIcon className="h-5 w-5 mr-2" />
+              Document
+            </button>
+            <button
+              onClick={() => setActiveTab('table')}
+              className={`flex items-center px-4 py-2 rounded-lg ${
+                activeTab === 'table' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'
+              }`}
+            >
+              <TableCellsIcon className="h-5 w-5 mr-2" />
+              Table
+            </button>
+          </div>
           <button
-            onClick={() => setActiveTab('table')}
-            className={`flex items-center px-4 py-2 rounded-lg ${
-              activeTab === 'table' ? 'bg-blue-100 text-blue-700' : 'text-gray-600'
-            }`}
+            onClick={handleConvert}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            <TableCellsIcon className="h-5 w-5 mr-2" />
-            Table
+            {isFirstConvert ? 'Convert to Table' : 'Proceed to Convert'}
+            <ArrowRightIcon className="h-5 w-5 ml-2" />
           </button>
         </div>
-        <button
-          onClick={handleConvert}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          {isFirstConvert ? 'Convert to Table' : 'Proceed to Convert'}
-          <ArrowRightIcon className="h-5 w-5 ml-2" />
-        </button>
       </div>
+
+      <AuditTrailSidebar
+        isOpen={isAuditTrailOpen}
+        onClose={() => setIsAuditTrailOpen(false)}
+      />
 
       {activeTab === 'document' && (
         <div className="flex flex-col items-center space-y-4">
@@ -378,14 +446,16 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
               <div className="flex flex-col items-center">
                 <Document
                   file={fileUrl}
-                  onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                  error={<div>Failed to load PDF</div>}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  onLoadError={onDocumentLoadError}
+                  loading={<div>Loading PDF...</div>}
+                  error={<div>Error loading PDF. Please try again.</div>}
                 >
                   <Page
                     pageNumber={pageNumber}
                     scale={scale}
-                    renderAnnotationLayer={false}
-                    renderTextLayer={false}
+                    loading={<div>Loading page {pageNumber}...</div>}
+                    error={<div>Error loading page {pageNumber}. Please try again.</div>}
                   />
                 </Document>
                 {numPages && numPages > 1 && (
@@ -411,7 +481,18 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
                 )}
               </div>
             ) : fileType === 'image' && fileUrl ? (
-              <img src={fileUrl} alt="Preview" className="max-w-full h-auto" />
+              <div className="flex-1 overflow-auto flex justify-center items-start p-4 bg-gray-100">
+                <img
+                  src={fileUrl}
+                  alt="Document preview"
+                  className="max-w-full h-auto"
+                  onLoad={() => setLoading(false)}
+                  onError={() => {
+                    setError('Failed to load image');
+                    setLoading(false);
+                  }}
+                />
+              </div>
             ) : null}
           </div>
         </div>

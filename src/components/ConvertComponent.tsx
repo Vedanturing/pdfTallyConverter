@@ -175,7 +175,23 @@ const ConvertComponent: React.FC = () => {
 
   const handlePasswordSubmit = async () => {
     setPasswordError('');
-    await handleValidate(password);
+    if (!password.trim()) {
+      setPasswordError('Please enter a password');
+      return;
+    }
+
+    try {
+      await handleValidate(password);
+      setShowPasswordModal(false);
+      setPassword('');
+    } catch (error: any) {
+      console.error('Password validation error:', error);
+      if (error.response?.status === 401) {
+        setPasswordError('Incorrect password. Please try again.');
+      } else {
+        setPasswordError('Error validating password. Please try again.');
+      }
+    }
   };
 
   const handleValidate = async (pdfPassword?: string) => {
@@ -316,33 +332,40 @@ const ConvertComponent: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
             <h3 className="text-lg font-semibold mb-4">PDF Password Required</h3>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter PDF password"
-              className="w-full p-2 border rounded mb-4"
-            />
-            {passwordError && (
-              <p className="text-red-500 text-sm mb-4">{passwordError}</p>
-            )}
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => {
-                  setShowPasswordModal(false);
-                  setPassword('');
-                }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePasswordSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Submit
-              </button>
-            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              await handlePasswordSubmit();
+            }}>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter PDF password"
+                className="w-full p-2 border rounded mb-4"
+                autoFocus
+              />
+              {passwordError && (
+                <p className="text-red-500 text-sm mb-4">{passwordError}</p>
+              )}
+              <div className="flex justify-end space-x-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPassword('');
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Submit
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

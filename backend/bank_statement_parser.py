@@ -15,6 +15,8 @@ import io
 from PyPDF2 import PdfReader
 import tempfile
 import os
+import easyocr
+from table_detector import TableDetector
 
 logger = logging.getLogger(__name__)
 
@@ -351,421 +353,146 @@ class PDFPasswordError(Exception):
     pass
 
 class BankStatementParser:
-    # Common header patterns for different banks
-    BANK_PATTERNS = {
-        'HDFC': {
-            'date': r'Date|Txn Date|Transaction Date',
-            'description': r'Narration|Description|Particulars',
-            'debit': r'Debit|Withdrawal \(Dr\)|DR',
-            'credit': r'Credit|Deposit \(Cr\)|CR',
-            'balance': r'Balance|Running Balance|Closing Balance'
-        },
-        'ICICI': {
-            'date': r'Date|Transaction Date|Tran Date',
-            'description': r'Description|Narration|Particulars',
-            'debit': r'Debit|Withdrawal|DR',
-            'credit': r'Credit|Deposit|CR',
-            'balance': r'Balance|Running Balance'
-        },
-        'SBI': {
-            'date': r'Txn Date|Date|Value Date',
-            'description': r'Description|Particulars|Narration',
-            'debit': r'Debit|Withdrawal|DR',
-            'credit': r'Credit|Deposit|CR',
-            'balance': r'Balance|Running Balance'
-        },
-        'AXIS': {
-            'date': r'Date|Transaction Date|Tran Date',
-            'description': r'Particulars|Narration|Description',
-            'debit': r'Debit|DR|Withdrawal',
-            'credit': r'Credit|CR|Deposit',
-            'balance': r'Balance|Running Balance'
-        }
-    }
-
     def __init__(self):
-        self.detected_bank = None
-        self.column_mapping = {}
-        self.is_encrypted = False
-        self.requires_password = False
+        self.missed_rows = []
+        self.missed_metadata_lines = []
+        self.table_detector = TableDetector()
+        self.bank_patterns = {
+            'sbi': {
+                'identifier': r'State Bank of India',
+                'date_pattern': r'\d{2}/\d{2}/\d{4}',
+                'amount_pattern': r'(?:(?:Rs|INR|₹)\s*)?[\d,]+\.\d{2}',
+                'balance_pattern': r'(?:Balance|Bal)\.?\s*(?:Rs|INR|₹)?\s*[\d,]+\.\d{2}'
+            },
+            'hdfc': {
+                'identifier': r'HDFC Bank',
+                'date_pattern': r'\d{2}/\d{2}/\d{4}',
+                'amount_pattern': r'(?:(?:Rs|INR|₹)\s*)?[\d,]+\.\d{2}',
+                'balance_pattern': r'(?:Balance|Bal)\.?\s*(?:Rs|INR|₹)?\s*[\d,]+\.\d{2}'
+            },
+            'icici': {
+                'identifier': r'ICICI Bank',
+                'date_pattern': r'\d{2}/\d{2}/\d{4}',
+                'amount_pattern': r'(?:(?:Rs|INR|₹)\s*)?[\d,]+\.\d{2}',
+                'balance_pattern': r'(?:Balance|Bal)\.?\s*(?:Rs|INR|₹)?\s*[\d,]+\.\d{2}'
+            },
+            'axis': {
+                'identifier': r'Axis Bank',
+                'date_pattern': r'\d{2}/\d{2}/\d{4}',
+                'amount_pattern': r'(?:(?:Rs|INR|₹)\s*)?[\d,]+\.\d{2}',
+                'balance_pattern': r'(?:Balance|Bal)\.?\s*(?:Rs|INR|₹)?\s*[\d,]+\.\d{2}'
+            }
+        }
 
-    def _detect_bank_format(self, text: str) -> Optional[str]:
-        """Detect bank format based on header patterns"""
-        for bank, patterns in self.BANK_PATTERNS.items():
-            matches = 0
-            for field, pattern in patterns.items():
-                if re.search(pattern, text, re.IGNORECASE):
-                    matches += 1
-            if matches >= 3:  # At least 3 matching patterns
+    def detect_bank(self, text: str) -> Optional[str]:
+        """Detect bank based on text patterns"""
+        for bank, patterns in self.bank_patterns.items():
+            if re.search(patterns['identifier'], text, re.IGNORECASE):
                 return bank
         return None
 
-    def _check_pdf_encryption(self, pdf_path: str) -> Tuple[bool, bool]:
-        """Check if PDF is encrypted and needs password"""
+    def extract_tables_from_pdf(self, pdf_path: str, password: Optional[str] = None) -> List[pd.DataFrame]:
+        """Extract tables from PDF using multiple methods"""
+        tables = []
         try:
-            # Try PyMuPDF first
+            # Try PyMuPDF first for image extraction
             doc = fitz.open(pdf_path)
-            is_encrypted = doc.is_encrypted
-            needs_password = is_encrypted and not doc.authenticate("")
-            doc.close()
-            return is_encrypted, needs_password
-        except Exception:
-            # Fallback to PyPDF2
-            try:
-                with open(pdf_path, 'rb') as file:
-                    pdf = PdfReader(file)
-                    is_encrypted = pdf.is_encrypted
-                    needs_password = is_encrypted
-                    return is_encrypted, needs_password
-            except Exception as e:
-                logger.error(f"Error checking PDF encryption: {e}")
-                return False, False
+            if password:
+                doc.authenticate(password)
 
-    def _decrypt_pdf(self, pdf_path: str, password: str) -> Optional[io.BytesIO]:
-        """Decrypt PDF with password and return as buffer"""
-        try:
-            # Try PyMuPDF first
-            doc = fitz.open(pdf_path)
-            if doc.is_encrypted and not doc.authenticate(password):
-                raise PDFPasswordError("Invalid password")
-            
-            # Create temporary buffer
-            buffer = io.BytesIO()
-            pdf_writer = fitz.open()
-            pdf_writer.insert_pdf(doc)
-            pdf_writer.save(buffer)
-            buffer.seek(0)
-            doc.close()
-            pdf_writer.close()
-            return buffer
-        except Exception as e:
-            logger.error(f"Error decrypting PDF with PyMuPDF: {e}")
-            
-            # Fallback to PyPDF2
-            try:
-                with open(pdf_path, 'rb') as file:
-                    pdf = PdfReader(file)
-                    if pdf.is_encrypted:
-                        if not pdf.decrypt(password):
-                            raise PDFPasswordError("Invalid password")
-                    
-                    # Create temporary buffer
-                    buffer = io.BytesIO()
-                    from PyPDF2 import PdfWriter
-                    writer = PdfWriter()
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                pix = page.get_pixmap()
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                img_np = np.array(img)
+                
+                # Process image with table detector
+                df, discarded = self.table_detector.process_image(img_np)
+                if df is not None and not df.empty:
+                    tables.append(df)
+                    self.missed_metadata_lines.extend(discarded)
+
+            # If no tables found, try pdfplumber
+            if not tables:
+                with pdfplumber.open(pdf_path, password=password) as pdf:
                     for page in pdf.pages:
-                        writer.add_page(page)
-                    writer.write(buffer)
-                    buffer.seek(0)
-                    return buffer
-            except Exception as e:
-                logger.error(f"Error decrypting PDF with PyPDF2: {e}")
-                raise PDFPasswordError(str(e))
+                        extracted_tables = page.extract_tables()
+                        for table in extracted_tables:
+                            if table:
+                                df = pd.DataFrame(table[1:], columns=table[0])
+                                tables.append(df)
 
-    def _extract_text_with_pdfplumber(self, pdf_path: str, password: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Extract tables using pdfplumber with password support"""
-        try:
-            # Check if PDF is encrypted
-            is_encrypted, needs_password = self._check_pdf_encryption(pdf_path)
-            self.is_encrypted = is_encrypted
-            self.requires_password = needs_password
-
-            if needs_password and not password:
-                raise PDFPasswordError("PDF is password protected. Please provide password.")
-
-            # If password protected, decrypt first
-            if needs_password and password:
-                pdf_buffer = self._decrypt_pdf(pdf_path, password)
-                if not pdf_buffer:
-                    raise PDFPasswordError("Failed to decrypt PDF")
-                pdf_file = pdf_buffer
-            else:
-                pdf_file = pdf_path
-
-            with pdfplumber.open(pdf_file, password=password if needs_password else "") as pdf:
-                all_tables = []
-                for page in pdf.pages:
-                    # Try to find tables
-                    tables = page.extract_tables()
-                    if tables:
-                        for table in tables:
-                            if table and len(table) > 1:  # Has headers and data
-                                all_tables.extend(table)
-                    else:
-                        # If no tables found, try to extract text with layout
-                        text = page.extract_text()
-                        if text:
-                            lines = text.split('\n')
-                            structured_lines = []
-                            for line in lines:
-                                parts = re.split(r'\s{2,}|\t|,(?=\s)', line)
-                                if len(parts) >= 4:  # Minimum columns needed
-                                    structured_lines.append(parts)
-                            if structured_lines:
-                                all_tables.extend(structured_lines)
-                return all_tables
         except Exception as e:
-            logger.error(f"Error in pdfplumber extraction: {e}")
-            raise
+            logger.error(f"Error extracting tables: {str(e)}")
+            return []
 
-    def _extract_text_with_fitz(self, pdf_path: str, password: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Extract text using PyMuPDF with password support"""
+        return tables
+
+    def process_bank_statement(self, pdf_path: str, password: Optional[str] = None) -> Dict[str, Any]:
+        """Process bank statement and extract transaction data"""
         try:
+            # Extract text for bank detection
             doc = fitz.open(pdf_path)
-            if doc.is_encrypted:
-                if not password:
-                    raise PDFPasswordError("PDF is password protected. Please provide password.")
-                if not doc.authenticate(password):
-                    raise PDFPasswordError("Invalid password")
-
-            all_lines = []
+            if password:
+                doc.authenticate(password)
+            text = ""
             for page in doc:
-                blocks = page.get_text("dict")["blocks"]
-                lines = []
-                current_line = []
-                current_y = None
-                
-                for block in blocks:
-                    if block.get("lines"):
-                        for line in block["lines"]:
-                            for span in line["spans"]:
-                                text = span["text"].strip()
-                                if text:
-                                    y = span["origin"][1]
-                                    if current_y is None:
-                                        current_y = y
-                                    elif abs(y - current_y) > 5:
-                                        if current_line:
-                                            lines.append(current_line)
-                                        current_line = []
-                                        current_y = y
-                                    current_line.append(text)
-                
-                if current_line:
-                    lines.append(current_line)
-                all_lines.extend(lines)
+                text += page.get_text()
             
-            doc.close()
-            return all_lines
+            # Detect bank
+            bank_type = self.detect_bank(text)
+            
+            # Extract tables
+            tables = self.extract_tables_from_pdf(pdf_path, password)
+            
+            if not tables:
+                return {
+                    'success': False,
+                    'error': 'No tables found in the document',
+                    'missed_metadata_lines': self.missed_metadata_lines
+                }
+            
+            # Combine all tables
+            df = pd.concat(tables, ignore_index=True)
+            
+            # Clean and standardize data
+            df = self.clean_data(df)
+            
+            return {
+                'success': True,
+                'data': df.to_dict('records'),
+                'bank_type': bank_type,
+                'missed_metadata_lines': self.missed_metadata_lines
+            }
+            
         except Exception as e:
-            logger.error(f"Error in fitz extraction: {e}")
-            raise
-
-    def _process_scanned_page(self, page_image: Image.Image) -> List[str]:
-        """Process scanned page using OCR"""
-        # Enhance image for better OCR
-        img_cv = cv2.cvtColor(np.array(page_image), cv2.COLOR_RGB2BGR)
-        img_gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-        img_thresh = cv2.threshold(img_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-
-        # Convert back to PIL Image
-        img_pil = Image.fromarray(img_thresh)
-        
-        # Perform OCR
-        text = pytesseract.image_to_string(img_pil, lang='eng')
-        
-        # Split into lines and clean
-        lines = text.split('\n')
-        return [line.strip() for line in lines if line.strip()]
-
-    def _normalize_date(self, date_str: str) -> str:
-        """Normalize date to YYYY-MM-DD format"""
-        try:
-            # Common date formats
-            formats = [
-                "%d-%m-%Y", "%d/%m/%Y", "%d.%m.%Y",
-                "%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d",
-                "%d-%m-%y", "%d/%m/%y", "%d.%m.%y"
-            ]
-            
-            for fmt in formats:
-                try:
-                    return datetime.strptime(date_str.strip(), fmt).strftime("%Y-%m-%d")
-                except ValueError:
-                    continue
-            
-            # Try parsing with dateutil as fallback
-            from dateutil import parser
-            return parser.parse(date_str).strftime("%Y-%m-%d")
-        except Exception:
-            return date_str
-
-    def _normalize_amount(self, amount_str: str) -> float:
-        """Normalize amount to float"""
-        if not amount_str or amount_str.strip() in ['-', 'NA', 'N/A']:
-            return 0.0
-        
-        # Remove currency symbols and commas
-        amount_str = re.sub(r'[₹,]', '', str(amount_str))
-        # Extract numbers and decimal point
-        amount_str = re.sub(r'[^\d.-]', '', amount_str)
-        
-        try:
-            return float(amount_str)
-        except ValueError:
-            return 0.0
-
-    def _map_columns(self, headers: List[str]) -> Dict[str, int]:
-        """Map column headers to standardized fields"""
-        column_map = {}
-        headers_str = ' '.join(headers).upper()
-        
-        # Detect bank format if not already detected
-        if not self.detected_bank:
-            self.detected_bank = self._detect_bank_format(headers_str)
-        
-        if not self.detected_bank:
-            # Generic mapping based on common patterns
-            patterns = {
-                'date': r'DATE|TXN|TRANSACTION',
-                'description': r'NARRATION|DESCRIPTION|PARTICULARS',
-                'debit': r'DEBIT|WITHDRAWAL|DR',
-                'credit': r'CREDIT|DEPOSIT|CR',
-                'balance': r'BALANCE'
+            logger.error(f"Error processing bank statement: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'missed_metadata_lines': self.missed_metadata_lines
             }
-        else:
-            patterns = self.BANK_PATTERNS[self.detected_bank]
+
+    def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Clean and standardize the extracted data"""
+        if df.empty:
+            return df
         
-        # Map columns based on patterns
-        for idx, header in enumerate(headers):
-            header_upper = header.upper()
-            for field, pattern in patterns.items():
-                if re.search(pattern, header_upper, re.IGNORECASE):
-                    column_map[field] = idx
-                    break
+        # Remove any unnamed columns
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         
-        return column_map
-
-    def parse_statement(self, pdf_path: str, password: Optional[str] = None) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-        """Main method to parse bank statement with password support"""
-        try:
-            # Check if PDF is encrypted
-            is_encrypted, needs_password = self._check_pdf_encryption(pdf_path)
-            self.is_encrypted = is_encrypted
-            self.requires_password = needs_password
-
-            if needs_password and not password:
-                return pd.DataFrame(), {
-                    "error": "PDF is password protected",
-                    "requires_password": True
-                }
-
-            # Try pdfplumber first
-            try:
-                tables = self._extract_text_with_pdfplumber(pdf_path, password)
-            except PDFPasswordError:
-                return pd.DataFrame(), {
-                    "error": "Invalid password",
-                    "requires_password": True
-                }
-            except Exception as e:
-                tables = []
-                logger.error(f"pdfplumber extraction failed: {e}")
-
-            if not tables:
-                # Fall back to PyMuPDF
-                try:
-                    tables = self._extract_text_with_fitz(pdf_path, password)
-                except PDFPasswordError:
-                    return pd.DataFrame(), {
-                        "error": "Invalid password",
-                        "requires_password": True
-                    }
-                except Exception as e:
-                    logger.error(f"fitz extraction failed: {e}")
-
-            if not tables:
-                # Check if PDF is scanned
-                try:
-                    doc = fitz.open(pdf_path)
-                    if needs_password:
-                        if not doc.authenticate(password):
-                            raise PDFPasswordError("Invalid password")
-                    
-                    for page in doc:
-                        pix = page.get_pixmap()
-                        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                        lines = self._process_scanned_page(img)
-                        if lines:
-                            tables.extend([line.split() for line in lines])
-                    doc.close()
-                except Exception as e:
-                    logger.error(f"OCR processing failed: {e}")
-
-            if not tables:
-                return pd.DataFrame(), {
-                    "error": "Unable to extract data from PDF",
-                    "requires_manual": True
-                }
-
-            # Process extracted data
-            headers = [str(cell).strip() for cell in tables[0]]
-            self.column_mapping = self._map_columns(headers)
-            
-            if not self.column_mapping:
-                return pd.DataFrame(), {
-                    "error": "Unable to auto-detect format",
-                    "requires_manual": True,
-                    "headers": headers
-                }
-
-            # Process rows
-            rows = []
-            for row in tables[1:]:
-                if not row or all(not cell for cell in row):
-                    continue
-                
-                processed_row = {
-                    'date': '',
-                    'description': '',
-                    'debit': 0.0,
-                    'credit': 0.0,
-                    'balance': 0.0
-                }
-                
-                try:
-                    for field, idx in self.column_mapping.items():
-                        if idx < len(row):
-                            value = str(row[idx]).strip()
-                            if field == 'date':
-                                processed_row[field] = self._normalize_date(value)
-                            elif field in ['debit', 'credit', 'balance']:
-                                processed_row[field] = self._normalize_amount(value)
-                            else:
-                                processed_row[field] = value
-                    
-                    if processed_row['date']:  # Only add rows with valid dates
-                        rows.append(processed_row)
-                except Exception as e:
-                    logger.warning(f"Error processing row: {e}")
-                    continue
-            
-            df = pd.DataFrame(rows)
-            
-            # Add metadata
-            metadata = {
-                "bank_detected": self.detected_bank,
-                "column_mapping": self.column_mapping,
-                "total_rows": len(df),
-                "date_range": {
-                    "start": df['date'].min() if not df.empty else None,
-                    "end": df['date'].max() if not df.empty else None
-                }
-            }
-            
-            return df, metadata
-            
-        except PDFPasswordError as e:
-            return pd.DataFrame(), {
-                "error": str(e),
-                "requires_password": True
-            }
-        except Exception as e:
-            logger.error(f"Error parsing bank statement: {e}")
-            return pd.DataFrame(), {
-                "error": str(e),
-                "requires_manual": True
-            }
+        # Convert amount columns to numeric
+        for col in ['debit', 'credit', 'balance']:
+            if col in df.columns:
+                df[col] = df[col].apply(lambda x: str(x).replace(',', '').replace('₹', '').strip())
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        # Sort by date if present
+        if 'date' in df.columns:
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+            df = df.sort_values('date')
+        
+        return df
 
 def validate_numeric_fields(df: pd.DataFrame) -> Dict[str, List[Dict[str, Any]]]:
     """Validate numeric fields in the DataFrame"""
