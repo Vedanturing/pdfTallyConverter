@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Settings, HelpCircle, Moon, Sun } from 'lucide-react';
 import { Button } from './ui/button';
@@ -12,13 +12,15 @@ import {
   BanknotesIcon,
   CalculatorIcon,
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
+import SettingsModal from './Settings';
 
-const navigation = [
-  { name: 'Upload', href: '/', icon: DocumentTextIcon },
-  { name: 'Preview', href: '/preview', icon: DocumentMagnifyingGlassIcon },
+const getNavigation = (t: any) => [
+  { name: t('navigation.upload'), href: '/', icon: DocumentTextIcon },
+  { name: t('navigation.preview'), href: '/preview', icon: DocumentMagnifyingGlassIcon },
   { name: 'Convert', href: '/convert', icon: ArrowPathIcon },
   { name: 'Validate', href: '/validate', icon: CheckCircleIcon },
-  { name: 'Export', href: '/export', icon: ArrowDownTrayIcon },
+  { name: t('navigation.export'), href: '/export', icon: ArrowDownTrayIcon },
   { name: 'Bank Matcher', href: '/bank-matcher', icon: BanknotesIcon },
   { name: 'GST Helper', href: '/gst-helper', icon: CalculatorIcon },
 ];
@@ -31,6 +33,8 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }) => {
   const location = useLocation();
+  const { t } = useTranslation();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -64,7 +68,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => setIsSettingsOpen(true)}
                 className="w-9 h-9 flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                title={t('common.settings')}
               >
                 <Settings className="h-5 w-5" />
               </motion.button>
@@ -95,7 +101,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }
                     <h1 className="text-xl font-semibold text-gray-900">PDF Tally Converter</h1>
                   </div>
                   <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                    {navigation.map((item) => {
+                    {getNavigation(t).map((item) => {
                       const isActive = location.pathname === item.href;
                       return (
                         <Link
@@ -127,6 +133,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }
           <p>© 2024 PDF Tally Converter. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+      />
     </div>
   );
 };

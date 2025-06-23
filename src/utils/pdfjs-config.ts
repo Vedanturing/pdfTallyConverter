@@ -1,21 +1,16 @@
-import { pdfjs as reactPdfJs } from 'react-pdf';
-import * as pdfjsLib from 'pdfjs-dist';
+import { pdfjs } from 'react-pdf';
 
 // Initialize PDF.js worker
 const workerSrc = '/pdf.worker.min.js';
 
-// Configure both react-pdf and pdfjs-dist to use the same worker
-reactPdfJs.GlobalWorkerOptions.workerSrc = workerSrc;
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+// Configure react-pdf to use the worker
+pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 export const initPdfWorker = () => {
   try {
-    // Ensure both libraries are using the worker
-    if (!reactPdfJs.GlobalWorkerOptions.workerSrc) {
-      reactPdfJs.GlobalWorkerOptions.workerSrc = workerSrc;
-    }
-    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+    // Ensure react-pdf is using the worker
+    if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
     }
     console.log('PDF.js worker initialized with URL:', workerSrc);
   } catch (error) {
@@ -26,11 +21,8 @@ export const initPdfWorker = () => {
 
 export const cleanupPdfWorker = () => {
   try {
-    reactPdfJs.GlobalWorkerOptions.workerSrc = '';
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    pdfjs.GlobalWorkerOptions.workerSrc = '';
   } catch (error) {
     console.error('Error cleaning up PDF.js worker:', error);
   }
-};
-
-export { pdfjsLib }; 
+}; 

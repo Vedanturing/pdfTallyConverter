@@ -4,7 +4,9 @@ import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { API_URL } from '../config';
 import { useNavigate } from 'react-router-dom';
-import { initPdfWorker, cleanupPdfWorker, pdfjsLib } from '../utils/pdfjs-config';
+import { initPdfWorker, cleanupPdfWorker } from '../utils/pdfjs-config';
+import { pdfjs } from 'react-pdf';
+import { useTranslation } from 'react-i18next';
 
 // Initialize PDF.js worker
 initPdfWorker();
@@ -18,6 +20,7 @@ interface FilePreview {
 }
 
 const FileUpload: React.FC = () => {
+  const { t } = useTranslation();
   const [filePreview, setFilePreview] = useState<FilePreview | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -66,7 +69,7 @@ const FileUpload: React.FC = () => {
       }
 
       if (response.data.file_id) {
-        toast.success('File uploaded successfully!');
+        toast.success(t('upload.success'));
         navigate('/preview', { 
           state: { 
             fileId: response.data.file_id,
@@ -80,7 +83,7 @@ const FileUpload: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Upload error:', error);
-      let errorMessage = 'Error uploading file. Please try again.';
+      let errorMessage = t('upload.error');
       
       if (error.code === 'ECONNABORTED') {
         errorMessage = 'Upload timed out. The file might be too large or your connection might be slow. Please try again with a smaller file or check your connection.';
@@ -166,7 +169,7 @@ const FileUpload: React.FC = () => {
         // Create a typed array from the array buffer
         const typedArray = new Uint8Array(arrayBuffer);
         
-        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+        const pdf = await pdfjs.getDocument({ data: typedArray }).promise;
         const page = await pdf.getPage(1);
         const viewport = page.getViewport({ scale: 1.0 });
         

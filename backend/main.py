@@ -2021,6 +2021,211 @@ async def get_missed_rows(file_id: str):
             detail=f"Error getting missed rows: {str(e)}"
         )
 
+@app.post("/auto-fix/{file_id}")
+async def apply_auto_fixes(file_id: str):
+    """Apply automatic fixes to validation issues"""
+    try:
+        # Get the validated data file
+        validated_path = os.path.join("corrected", f"{file_id}_validated.json")
+        if not os.path.exists(validated_path):
+            raise HTTPException(status_code=404, detail="Validated data not found")
+        
+        with open(validated_path, 'r') as f:
+            validated_data = json.load(f)
+        
+        # Apply automatic fixes based on validation results
+        if 'validation' in validated_data and 'results' in validated_data['validation']:
+            fixed_count = 0
+            for result in validated_data['validation']['results']:
+                for issue in result.get('issues', []):
+                    if issue.get('suggestedValue') and issue.get('autoFixable', False):
+                        # Apply the suggested fix
+                        row_index = result['row']
+                        field = issue['field']
+                        if row_index < len(validated_data['data']):
+                            validated_data['data'][row_index][field] = issue['suggestedValue']
+                            fixed_count += 1
+            
+            # Save the fixed data
+            with open(validated_path, 'w') as f:
+                json.dump(validated_data, f, indent=2)
+            
+            return {
+                "status": "success",
+                "message": f"Applied {fixed_count} auto-fixes successfully",
+                "fixed_count": fixed_count
+            }
+        else:
+            return {
+                "status": "success", 
+                "message": "No auto-fixable issues found",
+                "fixed_count": 0
+            }
+            
+    except Exception as e:
+        logger.error(f"Error applying auto-fixes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Auto-fix failed: {str(e)}")
+
+@app.post("/update-cell/{file_id}")
+async def update_cell(file_id: str, request: Request):
+    """Update a specific cell in the validated data"""
+    try:
+        data = await request.json()
+        row_index = data.get('rowIndex')
+        field = data.get('field')
+        value = data.get('value')
+        
+        if row_index is None or field is None or value is None:
+            raise HTTPException(status_code=400, detail="Missing required parameters")
+        
+        # Get the validated data file
+        validated_path = os.path.join("corrected", f"{file_id}_validated.json")
+        if not os.path.exists(validated_path):
+            raise HTTPException(status_code=404, detail="Validated data not found")
+        
+        with open(validated_path, 'r') as f:
+            validated_data = json.load(f)
+        
+        # Update the cell
+        if row_index < len(validated_data['data']):
+            validated_data['data'][row_index][field] = value
+            
+            # Save the updated data
+            with open(validated_path, 'w') as f:
+                json.dump(validated_data, f, indent=2)
+            
+            return {
+                "status": "success",
+                "message": "Cell updated successfully"
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Invalid row index")
+            
+    except Exception as e:
+        logger.error(f"Error updating cell: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Cell update failed: {str(e)}")
+
+@app.get("/excel-data/{file_id}")
+async def get_excel_data(file_id: str):
+    """Get the converted Excel data for a file"""
+    try:
+        # Check for validated data first
+        validated_path = os.path.join("corrected", f"{file_id}_validated.json")
+        if os.path.exists(validated_path):
+            with open(validated_path, 'r') as f:
+                validated_data = json.load(f)
+            return validated_data.get('data', [])
+        
+        # Check for converted Excel file
+        excel_path = os.path.join("converted", f"{file_id}.xlsx")
+        if os.path.exists(excel_path):
+            df = pd.read_excel(excel_path)
+            return df.to_dict('records')
+        
+        # Check for converted CSV file
+        csv_path = os.path.join("converted", f"{file_id}.csv")
+        if os.path.exists(csv_path):
+            df = pd.read_csv(csv_path)
+            return df.to_dict('records')
+        
+        raise HTTPException(status_code=404, detail="No converted data found")
+        
+    except Exception as e:
+        logger.error(f"Error getting Excel data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get Excel data: {str(e)}")
+
+@app.post("/gst/generate-reports/{file_id}")
+async def generate_gst_reports(file_id: str, request: Request):
+    """Generate GST reports for the converted data"""
+    try:
+        data = await request.json()
+        period = data.get('period', datetime.now().strftime('%Y-%m'))
+        
+        # Get the validated data
+        validated_path = os.path.join("corrected", f"{file_id}_validated.json")
+        if not os.path.exists(validated_path):
+            raise HTTPException(status_code=404, detail="Validated data not found")
+        
+        with open(validated_path, 'r') as f:
+            validated_data = json.load(f)
+        
+        entries = validated_data.get('data', [])
+        
+        # Generate GSTR-1 data
+        gstr1_data = []
+        gstr3b_data = {
+            "tax_period": period,
+            "total_turnover": 0,
+            "taxable_turnover": 0,
+            "igst": 0,
+            "cgst": 0,
+            "sgst": 0,
+            "cess": 0
+        }
+        
+        total_turnover = 0
+        taxable_turnover = 0
+        
+        for entry in entries:
+            amount = float(entry.get('amount', 0))
+            tax_rate = float(entry.get('taxRate', 0))
+            gstin = entry.get('gstin', '')
+            
+            total_turnover += amount
+            
+            if tax_rate > 0:
+                taxable_turnover += amount
+                tax_amount = amount * (tax_rate / 100)
+                
+                # For simplicity, assume equal CGST and SGST for intra-state
+                cgst_amount = tax_amount / 2
+                sgst_amount = tax_amount / 2
+                
+                gstr3b_data["cgst"] += cgst_amount
+                gstr3b_data["sgst"] += sgst_amount
+                
+                gstr1_data.append({
+                    "gstin": gstin,
+                    "invoice_number": entry.get('voucherNo', ''),
+                    "invoice_date": entry.get('date', ''),
+                    "invoice_value": amount,
+                    "taxable_value": amount,
+                    "tax_rate": tax_rate,
+                    "cgst_amount": cgst_amount,
+                    "sgst_amount": sgst_amount,
+                    "igst_amount": 0,
+                    "cess_amount": 0
+                })
+        
+        gstr3b_data["total_turnover"] = total_turnover
+        gstr3b_data["taxable_turnover"] = taxable_turnover
+        
+        # Save reports
+        report_dir = "exports"
+        os.makedirs(report_dir, exist_ok=True)
+        
+        gstr1_path = os.path.join(report_dir, f"GSTR1_{file_id}_{period}.json")
+        gstr3b_path = os.path.join(report_dir, f"GSTR3B_{file_id}_{period}.json")
+        
+        with open(gstr1_path, 'w') as f:
+            json.dump(gstr1_data, f, indent=2)
+        
+        with open(gstr3b_path, 'w') as f:
+            json.dump(gstr3b_data, f, indent=2)
+        
+        return {
+            "status": "success",
+            "message": "GST reports generated successfully",
+            "gstr1_file": os.path.basename(gstr1_path),
+            "gstr3b_file": os.path.basename(gstr3b_path),
+            "gstr1_data": gstr1_data,
+            "gstr3b_data": gstr3b_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating GST reports: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"GST report generation failed: {str(e)}")
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
     

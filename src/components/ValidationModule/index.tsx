@@ -10,16 +10,77 @@ import toast from 'react-hot-toast';
 interface ValidationModuleProps {
   fileId: string;
   initialData?: FinancialEntry[];
+  validationResults?: any;
 }
 
-function ValidationModuleContent({ fileId, initialData }: ValidationModuleProps) {
+function ValidationModuleContent({ fileId, initialData, validationResults }: ValidationModuleProps) {
   const { state, actions } = useValidation();
 
   useEffect(() => {
     if (initialData) {
+      // Load initial data directly instead of fetching
+      loadInitialData();
+    } else {
       fetchValidationData();
     }
   }, [fileId, initialData]);
+
+  const loadInitialData = () => {
+    try {
+      if (initialData && initialData.length > 0) {
+        // Convert initial data to the format expected by ValidationGrid
+        const convertedData = initialData.map((entry, index) => ({
+          ...entry,
+          id: entry.id || `row-${index}`,
+          rowIndex: index
+        }));
+
+        actions.updateValidationState({
+          data: convertedData,
+          issues: {},
+          summary: {
+            totalIssues: 0,
+            errors: 0,
+            warnings: 0,
+            ignoredIssues: 0,
+            fixedIssues: 0,
+            byType: {},
+            bySeverity: {}
+          }
+        });
+
+        // Process validation results if available
+        if (validationResults?.results) {
+          const issues: Record<string, any> = {};
+          validationResults.results.forEach((result: any) => {
+            result.issues.forEach((issue: any) => {
+              const cellId = `${result.row}-${issue.field}`;
+              if (!issues[cellId]) {
+                issues[cellId] = [];
+              }
+              issues[cellId].push({
+                ...issue,
+                cellId,
+                rowIndex: result.row,
+                columnKey: issue.field
+              });
+            });
+          });
+
+          actions.updateValidationState({
+            data: convertedData,
+            issues,
+            summary: validationResults.summary || state.summary
+          });
+        }
+
+        toast.success('Data loaded successfully');
+      }
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+      toast.error('Failed to load validation data');
+    }
+  };
 
   const fetchValidationData = async () => {
     try {

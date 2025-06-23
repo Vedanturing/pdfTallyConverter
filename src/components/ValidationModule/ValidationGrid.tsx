@@ -12,7 +12,8 @@ import {
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Tooltip } from '../ui/Tooltip';
-import { PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, CheckIcon, XMarkIcon, TableCellsIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const COLUMNS: Array<{ key: keyof FinancialEntry; label: string }> = [
   { key: 'date', label: 'Date' },
@@ -32,11 +33,29 @@ export function ValidationGrid({
   editableRows,
   onToggleEditable
 }: ValidationGridProps) {
+  const { t } = useTranslation();
   const [editingCell, setEditingCell] = useState<{
     rowIndex: number;
     field: keyof FinancialEntry;
     value: any;
   } | null>(null);
+
+  // If no data, show empty state
+  if (!data || data.length === 0) {
+    return (
+      <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="flex flex-col items-center justify-center py-12">
+          <TableCellsIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            No Data Available
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm">
+            No converted data found for validation. Please go back to the convert step to process your document.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const getCellIssues = (rowIndex: number, field: keyof FinancialEntry): CellValidationIssue[] => {
     const cellId = `${rowIndex}-${field}`;
@@ -144,33 +163,44 @@ export function ValidationGrid({
   };
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px]">Actions</TableHead>
+          <TableRow className="border-b border-gray-200 dark:border-gray-700">
+            <TableHead className="w-[100px] text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">
+              {t('common.actions')}
+            </TableHead>
             {COLUMNS.map(col => (
-              <TableHead key={col.key}>{col.label}</TableHead>
+              <TableHead 
+                key={col.key} 
+                className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50"
+              >
+                {col.label}
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((row, rowIndex) => (
-            <TableRow key={rowIndex}>
-              <TableCell>
+            <TableRow 
+              key={rowIndex}
+              className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            >
+              <TableCell className="text-gray-900 dark:text-gray-100">
                 <Button
                   size="sm"
                   variant={editableRows.has(`row-${rowIndex}`) ? 'default' : 'outline'}
                   onClick={() => onToggleEditable(rowIndex)}
+                  className="text-xs"
                 >
-                  {editableRows.has(`row-${rowIndex}`) ? 'Lock' : 'Edit'}
+                  {editableRows.has(`row-${rowIndex}`) ? t('common.lock') : t('common.edit')}
                 </Button>
               </TableCell>
               {COLUMNS.map(col => (
                 <TableCell
                   key={col.key}
                   style={getCellStyle(rowIndex, col.key)}
-                  className="relative"
+                  className="relative text-gray-900 dark:text-gray-100"
                 >
                   {renderCellContent(row, rowIndex, col.key)}
                 </TableCell>

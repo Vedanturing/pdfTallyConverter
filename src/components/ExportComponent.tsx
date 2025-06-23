@@ -1,172 +1,108 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { API_URL } from '../config';
-import { FinancialEntry, ValidationSummary } from '../types/financial';
-import toast from 'react-hot-toast';
-import {
-  ArrowLeftIcon,
+import { useTranslation } from 'react-i18next';
+import { 
+  ArrowLeftIcon, 
   DocumentArrowDownIcon,
   TableCellsIcon,
-  DocumentIcon,
   DocumentTextIcon,
-  ArrowPathIcon,
+  CodeBracketIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
-import ExportSummaryModal from './ExportSummaryModal';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import { API_URL } from '../config';
 
 interface ExportFormat {
   id: string;
   name: string;
-  extension: string;
-  icon: React.ForwardRefExoticComponent<any>;
   description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  disabled?: boolean;
 }
 
-const EXPORT_FORMATS: ExportFormat[] = [
-  {
-    id: 'xlsx',
-    name: 'Standard Excel',
-    extension: 'xlsx',
-    icon: TableCellsIcon,
-    description: 'Export as standard Microsoft Excel file'
-  },
-  {
-    id: 'tally',
-    name: 'Tally Excel',
-    extension: 'xlsx',
-    icon: TableCellsIcon,
-    description: 'Export in Tally-compatible Excel format'
-  },
-  {
-    id: 'json',
-    name: 'JSON Data',
-    extension: 'json',
-    icon: DocumentIcon,
-    description: 'Export as JSON for system integrations'
-  },
-  {
-    id: 'pdf',
-    name: 'PDF Summary',
-    extension: 'pdf',
-    icon: DocumentTextIcon,
-    description: 'Export as printable PDF summary'
-  }
-];
-
-const ExportComponent: React.FC = () => {
+export default function ExportComponent() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const [data, setData] = useState<FinancialEntry[]>([]);
-  const [fileId, setFileId] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [clientName, setClientName] = useState('');
-  const [exportedFormats, setExportedFormats] = useState<Set<string>>(new Set());
-  const [showSummary, setShowSummary] = useState(false);
-  const [summaryData, setSummaryData] = useState<{
-    fileName: string;
-    fileType: string;
-    data: FinancialEntry[];
-    validationSummary?: ValidationSummary;
-    exportFormat: string;
-    clientName: string;
-    exportSuccess: boolean;
-    downloadPath?: string;
-  } | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
-  useEffect(() => {
-    const state = location.state as { fileId?: string; data?: FinancialEntry[]; validationSummary?: ValidationSummary };
-    if (!state?.fileId || !state?.data) {
-      toast.error('No data to export');
-      navigate('/', { replace: true });
+  const fileId = location.state?.fileId;
+  const data = location.state?.data;
+  const convertedFormats = location.state?.convertedFormats;
+
+  const exportFormats: ExportFormat[] = [
+    {
+      id: 'xlsx',
+      name: 'Excel Spreadsheet',
+      description: 'Export as Microsoft Excel file (.xlsx)',
+      icon: TableCellsIcon,
+    },
+    {
+      id: 'csv',
+      name: 'CSV File',
+      description: 'Export as Comma Separated Values (.csv)',
+      icon: DocumentTextIcon,
+    },
+    {
+      id: 'xml',
+      name: 'XML Document',
+      description: 'Export as XML for structured data',
+      icon: CodeBracketIcon,
+    },
+    {
+      id: 'tally',
+      name: 'Tally XML',
+      description: 'Export in Tally-compatible XML format',
+      icon: CurrencyDollarIcon,
+    },
+  ];
+
+  const handleExport = async (format: string) => {
+    if (!fileId || !data) {
+      toast.error('No data available for export');
       return;
     }
-    setFileId(state.fileId);
-    setData(state.data);
-  }, [location.state, navigate]);
 
-  const handleExport = async (format: ExportFormat) => {
-    if (!clientName.trim()) {
-      toast.error('Please enter a client name');
-      return;
-    }
-
-    setLoading(true);
-    const toastId = toast.loading(`Exporting as ${format.name}...`);
+    setIsExporting(true);
+    const toastId = toast.loading(`Exporting as ${format.toUpperCase()}...`);
 
     try {
       const response = await axios.post(
-        `${API_URL}/export/${fileId}/${format.id}`,
-        { clientName },
-        { responseType: 'blob' }
+        `${API_URL}/export/${fileId}/${format}`,
+        {
+          data,
+          clientName: 'export',
+        },
+        {
+          responseType: 'blob',
+        }
       );
 
-      if (!response.data || response.data.size === 0) {
-        throw new Error('Received empty response from server');
-      }
-
-      setExportedFormats(prev => new Set([...prev, format.id]));
-
-      const date = new Date().toISOString().split('T')[0];
-      const filename = `${clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${date}_${format.id}.${format.extension}`;
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
       
-      const blob = new Blob([response.data], {
-        type: format.extension === 'xlsx'
-          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          : format.extension === 'json'
-          ? 'application/json'
-          : format.extension === 'pdf'
-          ? 'application/pdf'
-          : 'application/octet-stream'
-      });
-
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Get filename from headers or use default
+      const contentDisposition = response.headers['content-disposition'];
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `export.${format}`;
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
       window.URL.revokeObjectURL(url);
 
-      // Log export action
-      await axios.post(`${API_URL}/audit/log`, {
-        action: 'export',
-        format: format.id,
-        filename,
-        timestamp: new Date().toISOString()
-      });
-
-      toast.success(`Successfully exported as ${format.name}`, { id: toastId });
-
-      // Show export summary
-      setSummaryData({
-        fileName: filename,
-        fileType: location.state?.fileType || 'Unknown',
-        data,
-        validationSummary: location.state?.validationSummary,
-        exportFormat: format.name,
-        clientName,
-        exportSuccess: true,
-        downloadPath: filename
-      });
-      setShowSummary(true);
-    } catch (error) {
+      toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
+    } catch (error: any) {
       console.error('Export error:', error);
-      toast.error(`Failed to export as ${format.name}`, { id: toastId });
-
-      // Show error summary
-      setSummaryData({
-        fileName: `${clientName}_${format.id}.${format.extension}`,
-        fileType: location.state?.fileType || 'Unknown',
-        data,
-        validationSummary: location.state?.validationSummary,
-        exportFormat: format.name,
-        clientName,
-        exportSuccess: false
-      });
-      setShowSummary(true);
+      const errorMessage = error.response?.data?.detail || error.message || 'Export failed';
+      toast.error(`Export failed: ${errorMessage}`, { id: toastId });
     } finally {
-      setLoading(false);
+      setIsExporting(false);
     }
   };
 
@@ -174,83 +110,158 @@ const ExportComponent: React.FC = () => {
     navigate('/validate', {
       state: {
         fileId,
-        data
-      }
+        data,
+        convertedFormats,
+      },
     });
   };
 
+  if (!fileId || !data) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <DocumentArrowDownIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            No Data Available
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            No data found for export. Please go back to process your document.
+          </p>
+          <button
+            onClick={() => navigate('/convert')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Go to Convert
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6 space-y-8">
-      <div className="flex justify-between items-center">
-        <button
-          onClick={handleBack}
-          className="flex items-center text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeftIcon className="h-5 w-5 mr-2" />
-          Back
-        </button>
-        <h2 className="text-2xl font-semibold text-gray-900">Export Data</h2>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleBack}
+                className="flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+              >
+                <ArrowLeftIcon className="h-5 w-5 mr-2" />
+                {t('common.back')}
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {t('export.title')}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Choose your preferred export format
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-2">
-            Client Name
-          </label>
-          <input
-            type="text"
-            id="clientName"
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            placeholder="Enter client name"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-          />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            {t('export.formats')}
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Select a format to download your processed data
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {EXPORT_FORMATS.map((format) => (
-            <div
-              key={format.id}
-              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-blue-500 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <format.icon className="h-8 w-8 text-blue-600 mb-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">{format.name}</h3>
-                  <p className="text-gray-600 text-sm mt-1">{format.description}</p>
-                </div>
-                {exportedFormats.has(format.id) && (
-                  <span className="text-green-600 text-sm">Exported</span>
-                )}
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {exportFormats.map((format) => {
+            const IconComponent = format.icon;
+            const isDisabled = format.disabled || isExporting;
+
+            return (
               <button
-                onClick={() => handleExport(format)}
-                disabled={loading}
-                className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                key={format.id}
+                onClick={() => handleExport(format.id)}
+                disabled={isDisabled}
+                className={`
+                  relative p-6 rounded-lg border-2 transition-all duration-200
+                  ${
+                    isDisabled
+                      ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-50'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md cursor-pointer'
+                  }
+                `}
               >
-                {loading ? (
-                  <ArrowPathIcon className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
-                    {exportedFormats.has(format.id) ? 'Export Again' : 'Export'}
-                  </>
+                <div className="flex flex-col items-center text-center">
+                  <IconComponent 
+                    className={`h-8 w-8 mb-3 ${
+                      isDisabled 
+                        ? 'text-gray-400 dark:text-gray-600' 
+                        : 'text-blue-600 dark:text-blue-400'
+                    }`} 
+                  />
+                  <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    {format.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {format.description}
+                  </p>
+                </div>
+                
+                {isExporting && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 bg-opacity-90 dark:bg-opacity-90 rounded-lg">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  </div>
                 )}
               </button>
+            );
+          })}
+        </div>
+
+        {/* Data Summary */}
+        <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+            Export Summary
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {data?.length || 0}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Total Rows
+              </div>
             </div>
-          ))}
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {Object.keys(data?.[0] || {}).length || 0}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Columns
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {convertedFormats?.length || 0}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Formats Available
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                PDF
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Source Format
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {summaryData && (
-        <ExportSummaryModal
-          isOpen={showSummary}
-          onClose={() => setShowSummary(false)}
-          exportData={summaryData}
-        />
-      )}
     </div>
   );
-};
-
-export default ExportComponent; 
+} 

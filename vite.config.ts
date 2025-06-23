@@ -3,16 +3,30 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 
-// Copy PDF.js worker to public directory
-const workerPath = path.resolve(__dirname, 'node_modules/pdfjs-dist/build/pdf.worker.min.js');
+// Copy PDF.js worker to public directory - prioritize react-pdf's internal pdfjs-dist
+const possibleWorkerPaths = [
+  path.resolve(__dirname, 'node_modules/react-pdf/node_modules/pdfjs-dist/build/pdf.worker.min.js'),
+  path.resolve(__dirname, 'node_modules/pdfjs-dist/build/pdf.worker.min.js'),
+];
+
 const publicWorkerPath = path.resolve(__dirname, 'public/pdf.worker.min.js');
 
 if (!fs.existsSync('public')) {
   fs.mkdirSync('public');
 }
 
-if (fs.existsSync(workerPath)) {
-  fs.copyFileSync(workerPath, publicWorkerPath);
+let workerFound = false;
+for (const workerPath of possibleWorkerPaths) {
+  if (fs.existsSync(workerPath)) {
+    fs.copyFileSync(workerPath, publicWorkerPath);
+    console.log(`Copied PDF.js worker from: ${workerPath}`);
+    workerFound = true;
+    break;
+  }
+}
+
+if (!workerFound) {
+  console.warn('Could not find PDF.js worker file');
 }
 
 export default defineConfig({
@@ -68,7 +82,6 @@ export default defineConfig({
       },
       output: {
         manualChunks: {
-          pdfjs: ['pdfjs-dist'],
           'react-pdf': ['react-pdf'],
         },
       },
@@ -78,7 +91,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react-pdf', 'pdfjs-dist'],
+    include: ['react-pdf'],
   },
   worker: {
     format: 'es'

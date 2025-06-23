@@ -21,6 +21,10 @@ import {
 import BankMatcher from './components/BankMatcher';
 import GSTHelper from './components/GSTHelper';
 
+// Initialize i18n
+import './i18n/config';
+import { useLanguageStore } from './store/languageStore';
+
 const steps = [
   { title: 'Upload', icon: DocumentArrowUpIcon },
   { title: 'Preview', icon: DocumentMagnifyingGlassIcon },
@@ -34,8 +38,12 @@ function AppContent() {
   const [currentStep, setCurrentStep] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
+  const { initializeLanguage } = useLanguageStore();
 
   useEffect(() => {
+    // Initialize language settings
+    initializeLanguage();
+    
     // Initialize PDF worker
     initPdfWorker();
 

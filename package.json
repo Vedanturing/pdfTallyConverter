@@ -7,8 +7,7 @@
     "dev": "node setup-pdfjs.js && vite",
     "build": "node setup-pdfjs.js && tsc && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "postinstall": "node setup-pdfjs.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
@@ -23,12 +22,14 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.18.1",
     "html2pdf.js": "^0.10.1",
+    "i18next": "^25.2.1",
+    "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.294.0",
-    "pdfjs-dist": "^5.3.31",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.3.8",
     "react-hot-toast": "^2.4.1",
+    "react-i18next": "^15.5.3",
     "react-pdf": "^9.2.1",
     "react-router-dom": "^6.20.0",
     "tailwind-merge": "^2.0.0",
