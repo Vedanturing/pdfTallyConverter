@@ -18,11 +18,11 @@ import SettingsModal from './Settings';
 const getNavigation = (t: any) => [
   { name: t('navigation.upload'), href: '/', icon: DocumentTextIcon },
   { name: t('navigation.preview'), href: '/preview', icon: DocumentMagnifyingGlassIcon },
-  { name: 'Convert', href: '/convert', icon: ArrowPathIcon },
-  { name: 'Validate', href: '/validate', icon: CheckCircleIcon },
+  { name: t('navigation.convert'), href: '/convert', icon: ArrowPathIcon },
+  { name: t('navigation.validate'), href: '/validate', icon: CheckCircleIcon },
   { name: t('navigation.export'), href: '/export', icon: ArrowDownTrayIcon },
-  { name: 'Bank Matcher', href: '/bank-matcher', icon: BanknotesIcon },
-  { name: 'GST Helper', href: '/gst-helper', icon: CalculatorIcon },
+  { name: t('navigation.bankMatcher'), href: '/bank-matcher', icon: BanknotesIcon },
+  { name: t('navigation.gstHelper'), href: '/gst-helper', icon: CalculatorIcon },
 ];
 
 interface LayoutProps {

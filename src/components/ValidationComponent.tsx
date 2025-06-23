@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ValidationModule } from './ValidationModule';
-import { ArrowLeftIcon, ArrowDownTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { API_URL } from '../config';
@@ -35,33 +35,7 @@ export default function ValidationComponent() {
     });
   };
 
-  const handleGenerateGSTReports = async () => {
-    if (!fileId) {
-      toast.error('No file selected');
-      return;
-    }
 
-    const toastId = toast.loading('Generating GST reports...');
-    
-    try {
-      const response = await axios.post(`${API_URL}/gst/generate-reports/${fileId}`, {
-        period: new Date().toISOString().slice(0, 7) // YYYY-MM format
-      });
-
-      if (response.data?.status === 'success') {
-        toast.success('GST reports generated successfully!', { id: toastId });
-        
-        // Optionally navigate to a GST reports page or show results
-        console.log('GST Report Data:', response.data);
-      } else {
-        throw new Error(response.data?.message || 'Failed to generate GST reports');
-      }
-    } catch (error: any) {
-      console.error('GST report generation error:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Failed to generate GST reports';
-      toast.error(errorMessage, { id: toastId });
-    }
-  };
 
   if (!fileId) {
     return (
@@ -101,23 +75,13 @@ export default function ValidationComponent() {
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleGenerateGSTReports}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <DocumentTextIcon className="h-5 w-5 mr-2" />
-                Generate GST Reports
-              </button>
-              
-              <button
-                onClick={handleExport}
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-              >
-                <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-                {t('common.export')}
-              </button>
-            </div>
+            <button
+              onClick={handleExport}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
+              {t('common.export')}
+            </button>
           </div>
         </div>
       </div>

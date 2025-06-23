@@ -66,7 +66,13 @@ const ConvertComponent: React.FC = () => {
   const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
-    const state = location.state as { fileId?: string, data?: FinancialEntry[] };
+    const state = location.state as { 
+      fileId?: string, 
+      data?: FinancialEntry[], 
+      fromPreview?: boolean,
+      skipProcessing?: boolean 
+    };
+    
     if (!state?.fileId) {
       toast.error('No file selected');
       navigate('/', { replace: true });
@@ -80,6 +86,12 @@ const ConvertComponent: React.FC = () => {
 
     if (state.data) {
       setTableData(state.data);
+      
+      // If coming from preview with skip processing flag, mark as already processed
+      if (state.fromPreview && state.skipProcessing) {
+        setConvertedFormats(new Set(['xlsx', 'csv', 'xml'])); // Mark as converted
+        toast.success('Using cached data for faster processing!');
+      }
     }
   }, [location.state, navigate]);
 
@@ -94,10 +106,21 @@ const ConvertComponent: React.FC = () => {
     setError(null);
     
     try {
-      // First, ensure the file is converted
-      const convertResponse = await axios.post(`${API_URL}/convert/${currentFile.id}`);
+      // Check if we already have converted data and can skip API conversion
+      const hasData = tableData.length > 0;
+      const isAlreadyConverted = convertedFormats.has(format);
+      
+      if (!hasData || !isAlreadyConverted) {
+        // Only call convert API if we don't have data or format not converted
+        const convertResponse = await axios.post(`${API_URL}/convert/${currentFile.id}`);
+        
+        // Update table data if available
+        if (convertResponse.data?.data?.rows) {
+          setTableData(convertResponse.data.data.rows);
+        }
+      }
 
-      // Then download the converted file
+      // Always try to download the converted file
       const downloadResponse = await axios.get(`${API_URL}/api/convert/${currentFile.id}/${format}`, {
         responseType: 'blob',
         headers: {
@@ -142,11 +165,6 @@ const ConvertComponent: React.FC = () => {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       }, 200);
-
-      // Update table data if available
-      if (convertResponse.data?.data?.rows) {
-        setTableData(convertResponse.data.data.rows);
-      }
 
       toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
     } catch (error: any) {

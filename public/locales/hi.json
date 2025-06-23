@@ -27,7 +27,11 @@
     "home": "होम",
     "upload": "अपलोड",
     "preview": "पूर्वावलोकन",
+    "convert": "रूपांतरण",
+    "validate": "सत्यापन",
     "export": "निर्यात",
+    "bankMatcher": "बैंक मैचर",
+    "gstHelper": "जीएसटी सहायक",
     "profile": "प्रोफाइल",
     "logout": "लॉगआउट"
   },

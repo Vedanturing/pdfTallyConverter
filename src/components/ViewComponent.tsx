@@ -12,14 +12,15 @@ import {
   DocumentIcon,
   ArrowDownTrayIcon,
   ArrowLeftIcon,
-  ClipboardIcon,
+  EyeIcon,
+  RocketLaunchIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import FinancialTable from './FinancialTable';
 import { initPdfWorker, cleanupPdfWorker } from '../utils/pdfjs-config';
 import { FinancialEntry } from '../types/financial';
-import AuditTrailSidebar from './AuditTrail/AuditTrailSidebar';
+
 
 interface ConversionResponse {
   rows: Record<string, any>[];
@@ -49,7 +50,7 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
   const isMounted = useRef(true);
   const [scale, setScale] = useState<number>(1.5);
   const [isFirstConvert, setIsFirstConvert] = useState(true);
-  const [isAuditTrailOpen, setIsAuditTrailOpen] = useState(false);
+
 
   // Initialize PDF worker when component mounts
   useEffect(() => {
@@ -63,17 +64,7 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
     };
   }, []);
 
-  const logAction = useCallback(async (actionType: string, summary: string, metadata?: any) => {
-    try {
-      await axios.post(`${API_URL}/audit-logs`, {
-        action_type: actionType,
-        summary,
-        metadata
-      });
-    } catch (error) {
-      console.error('Failed to log action:', error);
-    }
-  }, []);
+
 
   const loadFile = useCallback(async (fileId: string) => {
     setLoading(true);
@@ -238,11 +229,7 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
         setConvertedData(convertedRows);
         setActiveTab('table');
         
-        // Log the conversion action
-        await logAction('convert', `Converted file ${fileId} to table format`, {
-          rowCount: convertedRows.length,
-          fileId
-        });
+
         
         if (conversionToast) {
           toast.success('Document converted successfully', {
@@ -371,13 +358,6 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
           Back
         </button>
         <div className="flex items-center space-x-4">
-          <button
-            onClick={() => setIsAuditTrailOpen(true)}
-            className="flex items-center px-3 py-1 text-gray-600 hover:text-gray-900 border rounded-lg"
-          >
-            <ClipboardIcon className="h-5 w-5 mr-2" />
-            Audit Trail
-          </button>
           <div className="flex space-x-4">
             <button
               onClick={() => setActiveTab('document')}
@@ -408,10 +388,7 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
         </div>
       </div>
 
-      <AuditTrailSidebar
-        isOpen={isAuditTrailOpen}
-        onClose={() => setIsAuditTrailOpen(false)}
-      />
+
 
       {activeTab === 'document' && (
         <div className="flex flex-col items-center space-y-4">
@@ -506,6 +483,40 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
           />
         </div>
       )}
+
+      {/* Fast Navigation Section */}
+      <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-blue-900 dark:text-blue-100 flex items-center">
+              <RocketLaunchIcon className="h-5 w-5 mr-2" />
+              Quick Convert
+            </h3>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+              Skip heavy processing and go directly to convert with cached data
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              // Use cached data for fast navigation
+              const cachedData = convertedData.length > 0 ? convertedData : [];
+              navigate('/convert', {
+                state: {
+                  fileId: selectedFile,
+                  data: cachedData,
+                  fromPreview: true,
+                  skipProcessing: true
+                }
+              });
+            }}
+            disabled={!selectedFile}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ArrowRightIcon className="h-4 w-4 mr-2" />
+            Quick Convert
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

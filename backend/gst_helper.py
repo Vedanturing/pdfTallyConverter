@@ -30,6 +30,14 @@ class GSTInvoice:
 class GSTHelper:
     def __init__(self):
         self.invoices: List[GSTInvoice] = []
+    
+    def clear_invoices(self):
+        """Clear all invoices from the collection"""
+        self.invoices.clear()
+    
+    def get_invoice_count(self) -> int:
+        """Get the number of invoices in the collection"""
+        return len(self.invoices)
         
     def add_invoice(self, invoice_data: Dict[str, Any]) -> GSTInvoice:
         """Add an invoice to the collection"""
@@ -184,36 +192,54 @@ class GSTHelper:
     def generate_excel_report(self, output_path: str):
         """Generate Excel report with GST details"""
         try:
-            # Create DataFrame from invoices
-            df = pd.DataFrame([{
-                'Invoice No': inv.invoice_no,
-                'Invoice Date': inv.invoice_date,
-                'Customer GSTIN': inv.customer_gstin,
-                'Customer Name': inv.customer_name,
-                'Place of Supply': inv.place_of_supply,
-                'Invoice Type': inv.invoice_type,
-                'Taxable Value': inv.taxable_value,
-                'GST Rate': inv.gst_rate,
-                'IGST': inv.igst,
-                'CGST': inv.cgst,
-                'SGST': inv.sgst,
-                'Total Amount': inv.total_amount,
-                'Reverse Charge': 'Yes' if inv.reverse_charge else 'No'
-            } for inv in self.invoices])
+            if not self.invoices:
+                # Create empty DataFrame with headers if no invoices
+                df = pd.DataFrame(columns=[
+                    'Invoice No', 'Invoice Date', 'Customer GSTIN', 'Customer Name',
+                    'Place of Supply', 'Invoice Type', 'Taxable Value', 'GST Rate',
+                    'IGST', 'CGST', 'SGST', 'Total Amount', 'Reverse Charge'
+                ])
+            else:
+                # Create DataFrame from invoices
+                df = pd.DataFrame([{
+                    'Invoice No': inv.invoice_no,
+                    'Invoice Date': inv.invoice_date.strftime('%Y-%m-%d') if inv.invoice_date else '',
+                    'Customer GSTIN': inv.customer_gstin,
+                    'Customer Name': inv.customer_name,
+                    'Place of Supply': inv.place_of_supply,
+                    'Invoice Type': inv.invoice_type,
+                    'Taxable Value': inv.taxable_value,
+                    'GST Rate': inv.gst_rate,
+                    'IGST': inv.igst,
+                    'CGST': inv.cgst,
+                    'SGST': inv.sgst,
+                    'Total Amount': inv.total_amount,
+                    'Reverse Charge': 'Yes' if inv.reverse_charge else 'No'
+                } for inv in self.invoices])
             
             # Add summary sheet
             with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
                 df.to_excel(writer, sheet_name='Invoices', index=False)
                 
                 # Create summary sheet
-                summary = pd.DataFrame([{
-                    'Description': 'Total',
-                    'Taxable Value': df['Taxable Value'].sum(),
-                    'IGST': df['IGST'].sum(),
-                    'CGST': df['CGST'].sum(),
-                    'SGST': df['SGST'].sum(),
-                    'Total Amount': df['Total Amount'].sum()
-                }])
+                if not df.empty:
+                    summary = pd.DataFrame([{
+                        'Description': 'Total',
+                        'Taxable Value': df['Taxable Value'].sum(),
+                        'IGST': df['IGST'].sum(),
+                        'CGST': df['CGST'].sum(),
+                        'SGST': df['SGST'].sum(),
+                        'Total Amount': df['Total Amount'].sum()
+                    }])
+                else:
+                    summary = pd.DataFrame([{
+                        'Description': 'Total',
+                        'Taxable Value': 0,
+                        'IGST': 0,
+                        'CGST': 0,
+                        'SGST': 0,
+                        'Total Amount': 0
+                    }])
                 summary.to_excel(writer, sheet_name='Summary', index=False)
                 
         except Exception as e:

@@ -1089,24 +1089,316 @@ def ensure_directory(path: str):
         os.makedirs(path)
 
 def save_as_xlsx(data: TableData, filepath: str):
-    # Convert to pandas DataFrame
-    rows_data = []
-    for row in data.rows:
-        row_dict = {header: row.cells[header].value for header in data.headers}
-        rows_data.append(row_dict)
+    """Create a professionally formatted Excel file for bank statements"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.worksheet.datavalidation import DataValidation
+    from openpyxl.utils import get_column_letter
+    from openpyxl.chart import LineChart, Reference
+    from datetime import datetime
+    import locale
     
-    df = pd.DataFrame(rows_data, columns=data.headers)
-    df.to_excel(filepath, index=False)
+    try:
+        # Create workbook and worksheet
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Bank Statement"
+        
+        # Convert data to DataFrame first for easier manipulation
+        rows_data = []
+        for row in data.rows:
+            row_dict = {header: row.cells[header].value for header in data.headers}
+            rows_data.append(row_dict)
+        
+        df = pd.DataFrame(rows_data, columns=data.headers)
+        
+        # Clean and standardize column names
+        column_mapping = {}
+        standard_columns = {
+            'date': ['date', 'transaction_date', 'txn_date', 'value_date', 'tran_date'],
+            'description': ['description', 'narration', 'particulars', 'details', 'remarks'],
+            'debit': ['debit', 'withdrawal', 'dr', 'debit_amount', 'withdrawal_amount'],
+            'credit': ['credit', 'deposit', 'cr', 'credit_amount', 'deposit_amount'],
+            'balance': ['balance', 'running_balance', 'closing_balance', 'available_balance'],
+            'reference': ['reference', 'ref_no', 'utr', 'cheque_no', 'transaction_id'],
+            'amount': ['amount', 'transaction_amount']
+        }
+        
+        # Map existing columns to standard names
+        final_headers = []
+        for header in data.headers:
+            header_lower = str(header).lower().replace(' ', '_')
+            mapped = False
+            for std_name, variations in standard_columns.items():
+                if header_lower in variations or any(var in header_lower for var in variations):
+                    column_mapping[header] = std_name.title()
+                    if std_name.title() not in final_headers:
+                        final_headers.append(std_name.title())
+                    mapped = True
+                    break
+            if not mapped:
+                clean_header = str(header).replace('_', ' ').title()
+                column_mapping[header] = clean_header
+                final_headers.append(clean_header)
+        
+        # Apply column mapping
+        df_renamed = df.rename(columns=column_mapping)
+        
+        # Ensure standard column order
+        preferred_order = ['Date', 'Description', 'Reference', 'Debit', 'Credit', 'Amount', 'Balance']
+        ordered_headers = []
+        for col in preferred_order:
+            if col in df_renamed.columns:
+                ordered_headers.append(col)
+        
+        # Add any remaining columns
+        for col in df_renamed.columns:
+            if col not in ordered_headers:
+                ordered_headers.append(col)
+        
+        df_final = df_renamed[ordered_headers]
+        
+        # Clean and format data
+        for col in df_final.columns:
+            if col == 'Date':
+                # Standardize date format
+                df_final[col] = pd.to_datetime(df_final[col], errors='coerce', infer_datetime_format=True)
+                df_final[col] = df_final[col].dt.strftime('%d-%m-%Y')
+                df_final[col] = df_final[col].replace('NaT', '')
+            elif col in ['Debit', 'Credit', 'Amount', 'Balance']:
+                # Clean and format numeric columns
+                df_final[col] = df_final[col].astype(str).str.replace(r'[₹,\s]', '', regex=True)
+                df_final[col] = pd.to_numeric(df_final[col], errors='coerce').fillna(0)
+            else:
+                # Clean text columns
+                df_final[col] = df_final[col].astype(str).str.strip()
+                df_final[col] = df_final[col].replace('nan', '')
+        
+        # Define styles
+        header_font = Font(name='Calibri', size=12, bold=True, color='FFFFFF')
+        header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+        header_alignment = Alignment(horizontal='center', vertical='center')
+        
+        data_font = Font(name='Calibri', size=11)
+        data_alignment = Alignment(horizontal='left', vertical='center')
+        number_alignment = Alignment(horizontal='right', vertical='center')
+        date_alignment = Alignment(horizontal='center', vertical='center')
+        
+        border = Border(
+            left=Side(style='thin', color='000000'),
+            right=Side(style='thin', color='000000'),
+            top=Side(style='thin', color='000000'),
+            bottom=Side(style='thin', color='000000')
+        )
+        
+        # Add title row
+        ws['A1'] = 'Bank Statement Analysis'
+        ws['A1'].font = Font(name='Calibri', size=16, bold=True)
+        ws.merge_cells('A1:' + get_column_letter(len(ordered_headers)) + '1')
+        
+        # Add metadata
+        ws['A2'] = f'Generated on: {datetime.now().strftime("%d-%m-%Y %H:%M:%S")}'
+        ws['A2'].font = Font(name='Calibri', size=10, italic=True)
+        ws.merge_cells('A2:' + get_column_letter(len(ordered_headers)) + '2')
+        
+        if not df_final.empty:
+            ws['A3'] = f'Period: {df_final["Date"].iloc[0]} to {df_final["Date"].iloc[-1]}'
+            ws['A3'].font = Font(name='Calibri', size=10, italic=True)
+            ws.merge_cells('A3:' + get_column_letter(len(ordered_headers)) + '3')
+        
+        # Add headers starting from row 5
+        header_row = 5
+        for col_idx, header in enumerate(ordered_headers, 1):
+            cell = ws.cell(row=header_row, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = border
+        
+        # Add data
+        for row_idx, (_, row) in enumerate(df_final.iterrows(), header_row + 1):
+            for col_idx, (col_name, value) in enumerate(row.items(), 1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                cell.font = data_font
+                cell.border = border
+                
+                # Apply specific formatting based on column type
+                if col_name == 'Date':
+                    cell.alignment = date_alignment
+                elif col_name in ['Debit', 'Credit', 'Amount', 'Balance']:
+                    cell.alignment = number_alignment
+                    if isinstance(value, (int, float)) and value != 0:
+                        cell.number_format = '#,##0.00'
+                    # Color coding for amounts
+                    if col_name == 'Debit' and value > 0:
+                        cell.font = Font(name='Calibri', size=11, color='D32F2F')  # Red for debits
+                    elif col_name == 'Credit' and value > 0:
+                        cell.font = Font(name='Calibri', size=11, color='388E3C')  # Green for credits
+                else:
+                    cell.alignment = data_alignment
+        
+        # Auto-adjust column widths
+        for col_idx, header in enumerate(ordered_headers, 1):
+            column_letter = get_column_letter(col_idx)
+            
+            # Calculate optimal width
+            max_length = len(str(header))
+            for row_idx in range(header_row + 1, ws.max_row + 1):
+                cell_value = ws.cell(row=row_idx, column=col_idx).value
+                if cell_value:
+                    max_length = max(max_length, len(str(cell_value)))
+            
+            # Set column width with reasonable limits
+            adjusted_width = min(max(max_length + 2, 12), 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Add data validation for date columns
+        if 'Date' in ordered_headers:
+            date_col = ordered_headers.index('Date') + 1
+            date_validation = DataValidation(
+                type="date",
+                formula1=datetime(2000, 1, 1),
+                formula2=datetime(2050, 12, 31),
+                showErrorMessage=True,
+                errorTitle="Invalid Date",
+                error="Please enter a valid date"
+            )
+            date_range = f"{get_column_letter(date_col)}{header_row + 1}:{get_column_letter(date_col)}{ws.max_row}"
+            date_validation.add(date_range)
+            ws.add_data_validation(date_validation)
+        
+        # Add summary section if we have balance data
+        if 'Balance' in ordered_headers and not df_final.empty:
+            summary_row = ws.max_row + 3
+            
+            # Summary title
+            ws.cell(row=summary_row, column=1, value="Summary").font = Font(name='Calibri', size=12, bold=True)
+            
+            # Calculate summary statistics
+            if 'Debit' in df_final.columns:
+                total_debits = df_final['Debit'].sum()
+                ws.cell(row=summary_row + 1, column=1, value="Total Debits:")
+                ws.cell(row=summary_row + 1, column=2, value=total_debits).number_format = '#,##0.00'
+            
+            if 'Credit' in df_final.columns:
+                total_credits = df_final['Credit'].sum()
+                ws.cell(row=summary_row + 2, column=1, value="Total Credits:")
+                ws.cell(row=summary_row + 2, column=2, value=total_credits).number_format = '#,##0.00'
+            
+            # Opening and closing balance
+            if 'Balance' in df_final.columns:
+                opening_balance = df_final['Balance'].iloc[0] if len(df_final) > 0 else 0
+                closing_balance = df_final['Balance'].iloc[-1] if len(df_final) > 0 else 0
+                
+                ws.cell(row=summary_row + 3, column=1, value="Opening Balance:")
+                ws.cell(row=summary_row + 3, column=2, value=opening_balance).number_format = '#,##0.00'
+                
+                ws.cell(row=summary_row + 4, column=1, value="Closing Balance:")
+                ws.cell(row=summary_row + 4, column=2, value=closing_balance).number_format = '#,##0.00'
+        
+        # Freeze panes (freeze header row)
+        ws.freeze_panes = f'A{header_row + 1}'
+        
+        # Add auto-filter
+        if ws.max_row > header_row:
+            ws.auto_filter.ref = f'A{header_row}:{get_column_letter(len(ordered_headers))}{ws.max_row}'
+        
+        # Save the workbook
+        wb.save(filepath)
+        
+    except Exception as e:
+        # Fallback to basic DataFrame export if formatting fails
+        logger.warning(f"Advanced Excel formatting failed: {str(e)}, using basic export")
+        rows_data = []
+        for row in data.rows:
+            row_dict = {header: row.cells[header].value for header in data.headers}
+            rows_data.append(row_dict)
+        
+        df = pd.DataFrame(rows_data, columns=data.headers)
+        df.to_excel(filepath, index=False, engine='openpyxl')
 
 def save_as_csv(data: TableData, filepath: str):
-    # Convert to pandas DataFrame
-    rows_data = []
-    for row in data.rows:
-        row_dict = {header: row.cells[header].value for header in data.headers}
-        rows_data.append(row_dict)
-    
-    df = pd.DataFrame(rows_data, columns=data.headers)
-    df.to_csv(filepath, index=False)
+    """Create a clean CSV file for bank statements"""
+    try:
+        # Convert to pandas DataFrame
+        rows_data = []
+        for row in data.rows:
+            row_dict = {header: row.cells[header].value for header in data.headers}
+            rows_data.append(row_dict)
+        
+        df = pd.DataFrame(rows_data, columns=data.headers)
+        
+        # Clean and standardize column names similar to Excel
+        column_mapping = {}
+        standard_columns = {
+            'date': ['date', 'transaction_date', 'txn_date', 'value_date', 'tran_date'],
+            'description': ['description', 'narration', 'particulars', 'details', 'remarks'],
+            'debit': ['debit', 'withdrawal', 'dr', 'debit_amount', 'withdrawal_amount'],
+            'credit': ['credit', 'deposit', 'cr', 'credit_amount', 'deposit_amount'],
+            'balance': ['balance', 'running_balance', 'closing_balance', 'available_balance'],
+            'reference': ['reference', 'ref_no', 'utr', 'cheque_no', 'transaction_id'],
+            'amount': ['amount', 'transaction_amount']
+        }
+        
+        # Map existing columns to standard names
+        for header in data.headers:
+            header_lower = str(header).lower().replace(' ', '_')
+            mapped = False
+            for std_name, variations in standard_columns.items():
+                if header_lower in variations or any(var in header_lower for var in variations):
+                    column_mapping[header] = std_name.title()
+                    mapped = True
+                    break
+            if not mapped:
+                clean_header = str(header).replace('_', ' ').title()
+                column_mapping[header] = clean_header
+        
+        # Apply column mapping
+        df_renamed = df.rename(columns=column_mapping)
+        
+        # Ensure standard column order
+        preferred_order = ['Date', 'Description', 'Reference', 'Debit', 'Credit', 'Amount', 'Balance']
+        ordered_headers = []
+        for col in preferred_order:
+            if col in df_renamed.columns:
+                ordered_headers.append(col)
+        
+        # Add any remaining columns
+        for col in df_renamed.columns:
+            if col not in ordered_headers:
+                ordered_headers.append(col)
+        
+        df_final = df_renamed[ordered_headers]
+        
+        # Clean and format data
+        for col in df_final.columns:
+            if col == 'Date':
+                # Standardize date format
+                df_final[col] = pd.to_datetime(df_final[col], errors='coerce', infer_datetime_format=True)
+                df_final[col] = df_final[col].dt.strftime('%d-%m-%Y')
+                df_final[col] = df_final[col].replace('NaT', '')
+            elif col in ['Debit', 'Credit', 'Amount', 'Balance']:
+                # Clean and format numeric columns
+                df_final[col] = df_final[col].astype(str).str.replace(r'[₹,\s]', '', regex=True)
+                df_final[col] = pd.to_numeric(df_final[col], errors='coerce').fillna(0)
+            else:
+                # Clean text columns
+                df_final[col] = df_final[col].astype(str).str.strip()
+                df_final[col] = df_final[col].replace('nan', '')
+        
+        # Save to CSV with proper encoding
+        df_final.to_csv(filepath, index=False, encoding='utf-8')
+        
+    except Exception as e:
+        # Fallback to basic DataFrame export if formatting fails
+        logger.warning(f"Advanced CSV formatting failed: {str(e)}, using basic export")
+        rows_data = []
+        for row in data.rows:
+            row_dict = {header: row.cells[header].value for header in data.headers}
+            rows_data.append(row_dict)
+        
+        df = pd.DataFrame(rows_data, columns=data.headers)
+        df.to_csv(filepath, index=False)
 
 def save_as_xml(data: TableData, filepath: str):
     root = ET.Element("ENVELOPE")
@@ -1443,54 +1735,6 @@ async def validate_data(file_id: str, request: Request):
             detail=f"Unexpected error: {str(e)}"
         )
 
-@app.post("/export/{format}")
-async def export_data(format: str, data: dict):
-    """Export data to various formats"""
-    try:
-        if not data or not data.get('data'):
-            raise HTTPException(status_code=400, detail="No data provided")
-
-        df = pd.DataFrame(data['data'])
-        output_file = f"temp_export.{format}"
-
-        if format == 'xlsx':
-            df.to_excel(output_file, index=False, engine='openpyxl')
-            media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        elif format == 'csv':
-            df.to_csv(output_file, index=False)
-            media_type = 'text/csv'
-        elif format == 'xml':
-            # Create XML structure
-            root = ET.Element("FinancialData")
-            for _, row in df.iterrows():
-                entry = ET.SubElement(root, "Entry")
-                for col in df.columns:
-                    ET.SubElement(entry, col).text = str(row[col])
-            
-            tree = ET.ElementTree(root)
-            tree.write(output_file, encoding='utf-8', xml_declaration=True)
-            media_type = 'application/xml'
-        else:
-            raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
-
-        # Return file and clean up
-        response = FileResponse(
-            output_file,
-            media_type=media_type,
-            filename=f"financial_data.{format}"
-        )
-
-        # Clean up in background after response is sent
-        background_tasks = BackgroundTasks()
-        background_tasks.add_task(lambda: os.remove(output_file))
-        
-        return response
-
-    except Exception as e:
-        logger.error(f"Export error: {str(e)}")
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.post("/export/{file_id}/{format}")
 async def export_data(
     file_id: str,
@@ -1498,125 +1742,295 @@ async def export_data(
     request: Request,
     background_tasks: BackgroundTasks
 ):
+    """Enhanced export with multi-language support"""
     try:
-        data = await request.json()
-        client_name = data.get("clientName", "export")
+        # Parse request body for language and localization settings
+        body = await request.json()
+        language = body.get('language', 'en')
+        localization = body.get('localization', {})
+        data = body.get('data', [])
         
-        # Get the validated data
-        validated_path = os.path.join("corrected", f"{file_id}_validated.json")
-        if not os.path.exists(validated_path):
-            raise HTTPException(status_code=404, detail="Validated data not found")
+        logger.info(f"Exporting {format} for file {file_id} in language {language}")
         
-        with open(validated_path, "r") as f:
-            entries = json.load(f)
+        # Define language-specific settings
+        language_settings = {
+            'en': {
+                'date_format': '%m/%d/%Y',
+                'number_format': 'US',
+                'currency_symbol': '$',
+                'headers': {
+                    'date': 'Date',
+                    'description': 'Description',
+                    'debit': 'Debit',
+                    'credit': 'Credit',
+                    'balance': 'Balance',
+                    'reference': 'Reference',
+                    'amount': 'Amount'
+                }
+            },
+            'hi': {
+                'date_format': '%d/%m/%Y',
+                'number_format': 'IN',
+                'currency_symbol': '₹',
+                'headers': {
+                    'date': 'दिनांक',
+                    'description': 'विवरण',
+                    'debit': 'डेबिट',
+                    'credit': 'क्रेडिट',
+                    'balance': 'शेष',
+                    'reference': 'संदर्भ',
+                    'amount': 'राशि'
+                }
+            },
+            'mr': {
+                'date_format': '%d/%m/%Y',
+                'number_format': 'IN',
+                'currency_symbol': '₹',
+                'headers': {
+                    'date': 'दिनांक',
+                    'description': 'तपशील',
+                    'debit': 'डेबिट',
+                    'credit': 'क्रेडिट',
+                    'balance': 'शिल्लक',
+                    'reference': 'संदर्भ',
+                    'amount': 'रक्कम'
+                }
+            }
+        }
         
-        # Create export directory
+        current_lang_settings = language_settings.get(language, language_settings['en'])
+        
+        # Override with custom localization if provided
+        if localization:
+            if 'dateFormat' in localization:
+                current_lang_settings['date_format'] = localization['dateFormat'].replace('MM', '%m').replace('DD', '%d').replace('YYYY', '%Y')
+            if 'currency' in localization:
+                current_lang_settings['currency_symbol'] = localization['currency']
+        
+        # Determine data source paths
         export_dir = "exports"
-        os.makedirs(export_dir, exist_ok=True)
+        converted_dir = "converted"  
+        corrected_dir = "corrected"
         
-        date_str = datetime.now().strftime("%Y%m%d")
-        safe_client_name = "".join(c for c in client_name if c.isalnum() or c in (' ', '-', '_')).strip()
-        base_filename = f"{safe_client_name}_{date_str}"
+        ensure_directory(export_dir)
         
-        if format == "xlsx":
-            # Standard Excel export
-            df = pd.DataFrame(entries)
-            output_path = os.path.join(export_dir, f"{base_filename}.xlsx")
-            df.to_excel(output_path, index=False, engine="openpyxl")
+        # Try to find data in order of preference: corrected -> converted -> provided
+        df = None
+        data_source = "provided"
+        
+        # Check for validated/corrected data first
+        validated_json_path = os.path.join(corrected_dir, f"{file_id}_validated.json")
+        if os.path.exists(validated_json_path):
+            try:
+                with open(validated_json_path, 'r', encoding='utf-8') as f:
+                    json_data = json.load(f)
+                df = pd.DataFrame(json_data)
+                data_source = "validated"
+                logger.info(f"Using validated data from {validated_json_path}")
+            except Exception as e:
+                logger.warning(f"Error reading validated data: {str(e)}")
+        
+        # Fallback to converted data
+        if df is None:
+            converted_json_path = os.path.join(converted_dir, f"{file_id}.json")
+            if os.path.exists(converted_json_path):
+                try:
+                    with open(converted_json_path, 'r', encoding='utf-8') as f:
+                        json_data = json.load(f)
+                    df = pd.DataFrame(json_data)
+                    data_source = "converted"
+                    logger.info(f"Using converted data from {converted_json_path}")
+                except Exception as e:
+                    logger.warning(f"Error reading converted data: {str(e)}")
+        
+        # Final fallback to provided data
+        if df is None and data:
+            df = pd.DataFrame(data)
+            data_source = "provided"
+            logger.info("Using provided data from request")
+        
+        if df is None or df.empty:
+            raise HTTPException(status_code=404, detail="No data found for export")
+        
+        # Apply language-specific formatting to DataFrame
+        def localize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+            df_localized = df.copy()
             
-        elif format == "tally":
-            # Tally-compatible Excel format
-            df = pd.DataFrame(entries)
-            # Add Tally-specific formatting
-            df["Voucher Type"] = "Receipt"
-            df["Narration"] = df["description"]
-            output_path = os.path.join(export_dir, f"{base_filename}_tally.xlsx")
-            df.to_excel(output_path, index=False, engine="openpyxl")
+            # Rename columns to localized headers
+            column_mapping = {}
+            for col in df_localized.columns:
+                col_lower = col.lower()
+                for eng_key, local_header in current_lang_settings['headers'].items():
+                    if eng_key in col_lower or col_lower == eng_key:
+                        column_mapping[col] = local_header
+                        break
             
-        elif format == "json":
-            # JSON export
-            output_path = os.path.join(export_dir, f"{base_filename}.json")
-            with open(output_path, "w") as f:
-                json.dump(entries, f, indent=2)
+            if column_mapping:
+                df_localized = df_localized.rename(columns=column_mapping)
+            
+            # Format date columns
+            for col in df_localized.columns:
+                if 'date' in col.lower() or col in current_lang_settings['headers'].values():
+                    try:
+                        df_localized[col] = pd.to_datetime(df_localized[col], errors='coerce')
+                        df_localized[col] = df_localized[col].dt.strftime(current_lang_settings['date_format'])
+                    except:
+                        pass
+            
+            # Format numeric columns with currency
+            for col in df_localized.columns:
+                col_lower = col.lower()
+                if any(keyword in col_lower for keyword in ['amount', 'debit', 'credit', 'balance']) or col in current_lang_settings['headers'].values():
+                    try:
+                        # Convert to numeric first
+                        df_localized[col] = pd.to_numeric(df_localized[col], errors='coerce')
+                        # Format with currency symbol for display
+                        if current_lang_settings['number_format'] == 'IN':
+                            df_localized[col] = df_localized[col].apply(
+                                lambda x: f"{current_lang_settings['currency_symbol']}{x:,.2f}" if pd.notna(x) and x != 0 else ""
+                            )
+                        else:
+                            df_localized[col] = df_localized[col].apply(
+                                lambda x: f"{current_lang_settings['currency_symbol']}{x:,.2f}" if pd.notna(x) and x != 0 else ""
+                            )
+                    except:
+                        pass
+            
+            return df_localized
+        
+        # Apply localization
+        df_localized = localize_dataframe(df)
+        
+        # Generate export filename with language suffix
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_filename = f"{file_id}_{language}_{timestamp}"
+        
+        if format.lower() == 'xlsx':
+            filename = f"{base_filename}.xlsx"
+            filepath = os.path.join(export_dir, filename)
+            
+            # Use enhanced Excel formatting with localization
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+            from openpyxl.utils import get_column_letter
+            
+            wb = Workbook()
+            ws = wb.active
+            ws.title = f"Bank Statement ({language.upper()})"
+            
+            # Add title with language indicator
+            title_text = {
+                'en': 'Bank Statement Analysis',
+                'hi': 'बैंक स्टेटमेंट विश्लेषण', 
+                'mr': 'बँक स्टेटमेंट विश्लेषण'
+            }
+            ws['A1'] = title_text.get(language, title_text['en'])
+            ws['A1'].font = Font(name='Calibri', size=16, bold=True)
+            ws.merge_cells(f'A1:{get_column_letter(len(df_localized.columns))}1')
+            
+            # Add generation info
+            ws['A2'] = f'Generated: {datetime.now().strftime(current_lang_settings["date_format"])} | Language: {language.upper()}'
+            ws['A2'].font = Font(name='Calibri', size=10, italic=True)
+            ws.merge_cells(f'A2:{get_column_letter(len(df_localized.columns))}2')
+            
+            # Add headers and data starting from row 4
+            for col_idx, header in enumerate(df_localized.columns, 1):
+                cell = ws.cell(row=4, column=col_idx, value=header)
+                cell.font = Font(name='Calibri', size=12, bold=True, color='FFFFFF')
+                cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Add data
+            for row_idx, (_, row) in enumerate(df_localized.iterrows(), 5):
+                for col_idx, value in enumerate(row, 1):
+                    ws.cell(row=row_idx, column=col_idx, value=value)
+            
+            # Auto-adjust column widths
+            for col_idx in range(1, len(df_localized.columns) + 1):
+                column_letter = get_column_letter(col_idx)
+                ws.column_dimensions[column_letter].width = 15
+            
+            wb.save(filepath)
+            media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            
+        elif format.lower() == 'csv':
+            filename = f"{base_filename}.csv"
+            filepath = os.path.join(export_dir, filename)
+            df_localized.to_csv(filepath, index=False, encoding='utf-8-sig')  # Use utf-8-sig for Excel compatibility
+            media_type = 'text/csv'
+            
+        elif format.lower() == 'json':
+            filename = f"{base_filename}.json"
+            filepath = os.path.join(export_dir, filename)
+            
+            # Create structured JSON with metadata
+            export_data = {
+                'metadata': {
+                    'file_id': file_id,
+                    'language': language,
+                    'export_date': datetime.now().isoformat(),
+                    'data_source': data_source,
+                    'localization': current_lang_settings
+                },
+                'data': df_localized.to_dict('records')
+            }
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+            media_type = 'application/json'
+            
+        elif format.lower() in ['xml', 'tally']:
+            filename = f"{base_filename}.xml"
+            filepath = os.path.join(export_dir, filename)
+            
+            if format.lower() == 'tally':
+                # Use existing Tally XML function with localized headers
+                create_tally_xml(df_localized, filepath)
+            else:
+                # Generic XML with localization
+                root = ET.Element("BankStatementExport")
+                root.set("language", language)
+                root.set("exportDate", datetime.now().isoformat())
                 
-        elif format == "pdf":
-            # Generate PDF summary
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import letter
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-            from reportlab.lib.styles import getSampleStyleSheet
+                metadata = ET.SubElement(root, "Metadata")
+                ET.SubElement(metadata, "FileId").text = file_id
+                ET.SubElement(metadata, "Language").text = language
+                ET.SubElement(metadata, "DataSource").text = data_source
+                
+                data_elem = ET.SubElement(root, "Data")
+                for _, row in df_localized.iterrows():
+                    record = ET.SubElement(data_elem, "Record")
+                    for col, value in row.items():
+                        elem = ET.SubElement(record, "Field")
+                        elem.set("name", str(col))
+                        elem.text = str(value) if value is not None else ""
+                
+                tree = ET.ElementTree(root)
+                tree.write(filepath, encoding='utf-8', xml_declaration=True)
             
-            output_path = os.path.join(export_dir, f"{base_filename}_summary.pdf")
-            doc = SimpleDocTemplate(output_path, pagesize=letter)
-            
-            # Create the PDF content
-            styles = getSampleStyleSheet()
-            elements = []
-            
-            # Add title
-            elements.append(Paragraph(f"Financial Summary - {client_name}", styles["Title"]))
-            elements.append(Paragraph(f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}", styles["Normal"]))
-            
-            # Create table
-            df = pd.DataFrame(entries)
-            table_data = [df.columns.tolist()] + df.values.tolist()
-            t = Table(table_data)
-            t.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, 0), 14),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                ("TEXTCOLOR", (0, 1), (-1, -1), colors.black),
-                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-                ("FONTSIZE", (0, 1), (-1, -1), 12),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("GRID", (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            elements.append(t)
-            
-            # Build PDF
-            doc.build(elements)
+            media_type = 'application/xml'
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
         
-        # Log the export
-        log_path = os.path.join("exports", "audit_log.json")
-        log_entry = {
-            "timestamp": datetime.now().isoformat(),
-            "client_name": client_name,
-            "file_id": file_id,
-            "format": format,
-            "filename": os.path.basename(output_path)
-        }
-        
-        try:
-            if os.path.exists(log_path):
-                with open(log_path, "r") as f:
-                    log = json.load(f)
-            else:
-                log = []
-            
-            log.append(log_entry)
-            
-            with open(log_path, "w") as f:
-                json.dump(log, f, indent=2)
-        except Exception as e:
-            logging.error(f"Error writing to audit log: {str(e)}")
-        
-        # Clean up old exports in the background
+        # Add cleanup task
         background_tasks.add_task(cleanup_old_exports, export_dir)
         
+        # Return file with proper headers
         return FileResponse(
-            output_path,
-            filename=os.path.basename(output_path),
-            media_type="application/octet-stream"
+            filepath,
+            filename=filename,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Cache-Control": "no-cache",
+                "X-Language": language,
+                "X-Data-Source": data_source
+            }
         )
         
     except Exception as e:
-        logging.error(f"Error exporting data: {str(e)}")
+        logger.error(f"Export error: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 def cleanup_old_exports(export_dir: str, max_age_days: int = 7):
@@ -1776,7 +2190,25 @@ async def add_gst_invoice(invoice_data: Dict[str, Any]):
 async def generate_gstr1(period: str = Body(..., embed=True)):
     """Generate GSTR-1 format JSON"""
     try:
+        # Check if there are any invoices
+        if gst_helper.get_invoice_count() == 0:
+            return {
+                "success": True,
+                "message": "No invoices found for GSTR-1 generation",
+                "data": {
+                    "gstin": "",
+                    "fp": period,
+                    "version": "GST3.0.4",
+                    "hash": "hash",
+                    "b2b": [],
+                    "exp": []
+                }
+            }
+        
         gstr1_data = gst_helper.generate_gstr1_json(period)
+        
+        # Ensure export directory exists
+        os.makedirs(EXPORT_DIR, exist_ok=True)
         
         # Save to file
         file_path = os.path.join(EXPORT_DIR, f"GSTR1_{period}.json")
@@ -1800,7 +2232,27 @@ async def generate_gstr1(period: str = Body(..., embed=True)):
 async def generate_gstr3b(period: str = Body(..., embed=True)):
     """Generate GSTR-3B format JSON"""
     try:
+        # Check if there are any invoices
+        if gst_helper.get_invoice_count() == 0:
+            return {
+                "success": True,
+                "message": "No invoices found for GSTR-3B generation",
+                "data": {
+                    "gstin": "",
+                    "ret_period": period,
+                    "sup_details": {
+                        "osup_det": {"txval": 0, "iamt": 0, "camt": 0, "samt": 0, "csamt": 0},
+                        "osup_zero": {"txval": 0, "iamt": 0, "csamt": 0},
+                        "osup_nil_exmp": {"txval": 0},
+                        "isup_rev": {"txval": 0, "iamt": 0, "camt": 0, "samt": 0, "csamt": 0}
+                    }
+                }
+            }
+        
         gstr3b_data = gst_helper.generate_gstr3b_json(period)
+        
+        # Ensure export directory exists
+        os.makedirs(EXPORT_DIR, exist_ok=True)
         
         # Save to file
         file_path = os.path.join(EXPORT_DIR, f"GSTR3B_{period}.json")
@@ -1824,14 +2276,28 @@ async def generate_gstr3b(period: str = Body(..., embed=True)):
 async def generate_gst_excel(period: str = Body(..., embed=True)):
     """Generate GST Excel report"""
     try:
+        # Ensure export directory exists
+        os.makedirs(EXPORT_DIR, exist_ok=True)
+        
         file_path = os.path.join(EXPORT_DIR, f"GST_Report_{period}.xlsx")
+        
+        # Generate the Excel report
         gst_helper.generate_excel_report(file_path)
+        
+        # Check if file was created successfully
+        if not os.path.exists(file_path):
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate Excel report file"
+            )
         
         return FileResponse(
             file_path,
             media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             filename=f"GST_Report_{period}.xlsx"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating GST Excel report: {str(e)}")
         logger.error(traceback.format_exc())
@@ -1855,6 +2321,40 @@ async def validate_gstin(gstin: str = Body(..., embed=True)):
         raise HTTPException(
             status_code=500,
             detail=f"Error validating GSTIN: {str(e)}"
+        )
+
+@app.post("/gst/clear-invoices")
+async def clear_gst_invoices():
+    """Clear all GST invoices from the helper"""
+    try:
+        gst_helper.clear_invoices()
+        return {
+            "success": True,
+            "message": "All GST invoices cleared successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error clearing GST invoices: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error clearing GST invoices: {str(e)}"
+        )
+
+@app.get("/gst/invoice-count")
+async def get_gst_invoice_count():
+    """Get the number of invoices in the GST helper"""
+    try:
+        count = gst_helper.get_invoice_count()
+        return {
+            "success": True,
+            "invoice_count": count
+        }
+    except Exception as e:
+        logger.error(f"Error getting GST invoice count: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting GST invoice count: {str(e)}"
         )
 
 @app.get("/file/{file_id}")

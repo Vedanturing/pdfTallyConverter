@@ -1,0 +1,260 @@
+{
+  "data": [
+    {
+      "id": "row-0",
+      "date": "2025-02-01",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Bill Payment",
+      "balance": 21877.52,
+      "description": "lokesh gay"
+    },
+    {
+      "id": "row-1",
+      "date": "2025-02-02",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "UPI Transfer",
+      "balance": 25176.72
+    },
+    {
+      "id": "row-2",
+      "date": "2025-02-04",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "NEFT Transfer",
+      "balance": 26026.47
+    },
+    {
+      "id": "row-3",
+      "date": "2025-02-05",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Mobile Recharge",
+      "balance": 24037.37
+    },
+    {
+      "id": "row-4",
+      "date": "2025-02-06",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "UPI Transfer",
+      "balance": 25919.81
+    },
+    {
+      "id": "row-5",
+      "date": "2025-02-08",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "UPI Transfer",
+      "balance": 28885.33
+    },
+    {
+      "id": "row-6",
+      "date": "2025-02-10",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "UPI Transfer",
+      "balance": 30343.86
+    },
+    {
+      "id": "row-7",
+      "date": "2025-02-13",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "NEFT Transfer",
+      "balance": 28435.62
+    },
+    {
+      "id": "row-8",
+      "date": "2025-02-14",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Cash Deposit",
+      "balance": 35999.15
+    },
+    {
+      "id": "row-9",
+      "date": "2025-02-15",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "POS Purchase",
+      "balance": 39622.23
+    }
+  ],
+  "formats": [
+    "xlsx"
+  ],
+  "validation": {
+    "results": {
+      "is_valid": false,
+      "errors": [
+        "Missing required columns: description"
+      ],
+      "warnings": []
+    },
+    "financial": {
+      "is_valid": false,
+      "errors": [
+        {
+          "row": 1,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 2,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 3,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 4,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 5,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 6,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 7,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 8,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 9,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 10,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        }
+      ]
+    },
+    "summary": {
+      "total_rows": 10,
+      "empty_fields": [
+        {
+          "row": 1,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 2,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 3,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 4,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 5,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 6,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 7,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 8,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 9,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 10,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        }
+      ],
+      "numeric_issues": [],
+      "date_issues": [],
+      "duplicate_entries": []
+    }
+  }
+}

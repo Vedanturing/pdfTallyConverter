@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { ValidationProvider, useValidation } from './ValidationContext';
 import { ValidationGrid } from './ValidationGrid';
 import { ValidationToolbar } from './ValidationToolbar';
@@ -6,6 +6,16 @@ import { FinancialEntry } from '../../types/financial';
 import { API_URL } from '../../config';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+
+// Debounce utility
+const useDebounce = (callback: Function, delay: number) => {
+  const debounceRef = React.useRef<NodeJS.Timeout>();
+  
+  return useCallback((...args: any[]) => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => callback(...args), delay);
+  }, [callback, delay]);
+};
 
 interface ValidationModuleProps {
   fileId: string;
@@ -120,22 +130,50 @@ function ValidationModuleContent({ fileId, initialData, validationResults }: Val
     }
   };
 
-  const handleCellEdit = async (rowIndex: number, field: keyof FinancialEntry, value: any) => {
+  // Debounced cell update for better performance
+  const debouncedBackendUpdate = useDebounce(async (rowIndex: number, field: keyof FinancialEntry, value: any) => {
     try {
       await axios.post(`${API_URL}/update-cell/${fileId}`, {
         rowIndex,
         field,
         value
       });
+    } catch (error) {
+      console.error('Error updating cell:', error);
+      toast.error('Failed to update cell');
+      // Revert local changes on error
+      if (initialData) {
+        loadInitialData();
+      } else {
+        fetchValidationData();
+      }
+    }
+  }, 500);
 
-      // Refresh validation data after edit
-      await fetchValidationData();
-      toast.success('Cell updated successfully');
+  const handleCellEdit = useCallback(async (rowIndex: number, field: keyof FinancialEntry, value: any) => {
+    try {
+      // Update local state immediately for better performance
+      const updatedData = [...state.data];
+      if (updatedData[rowIndex]) {
+        updatedData[rowIndex] = {
+          ...updatedData[rowIndex],
+          [field]: value
+        };
+        
+        // Update local state first for immediate UI feedback
+        actions.updateValidationState({
+          ...state,
+          data: updatedData
+        });
+      }
+
+      // Debounced backend update
+      debouncedBackendUpdate(rowIndex, field, value);
     } catch (error) {
       console.error('Error updating cell:', error);
       toast.error('Failed to update cell');
     }
-  };
+  }, [state.data, actions, debouncedBackendUpdate]);
 
   const handleApplyAutoFixes = async () => {
     try {

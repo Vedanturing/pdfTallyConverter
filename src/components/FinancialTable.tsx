@@ -7,7 +7,7 @@ import {
 import { toast } from 'react-hot-toast';
 import useAuditStore from '../store/auditStore';
 import useValidationStore from '../store/validationStore';
-import AuditTrail from './AuditTrail';
+
 import { API_URL } from '../config';
 import { FinancialEntry } from '../types/financial';
 import { validateTable } from '../utils/validation';
@@ -44,7 +44,7 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
   const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null);
   const [history, setHistory] = useState<FinancialEntry[][]>([data]);
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(0);
-  const [showAuditTrail, setShowAuditTrail] = useState(false);
+
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
   const [correctionNotes, setCorrectionNotes] = useState<CorrectionNote[]>([]);
   const [selectedCell, setSelectedCell] = useState<{ rowId: string; field: string } | null>(null);
@@ -264,12 +264,7 @@ const FinancialTable: React.FC<FinancialTableProps> = ({
               />
               <span>Show Only Rows with Errors</span>
             </label>
-            <button
-              onClick={() => setShowAuditTrail(true)}
-              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
-            >
-              View Audit Trail
-            </button>
+
           </div>
           <div className="flex space-x-2">
             <button

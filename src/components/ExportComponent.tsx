@@ -22,10 +22,11 @@ interface ExportFormat {
 }
 
 export default function ExportComponent() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
 
   const fileId = location.state?.fileId;
   const data = location.state?.data;
@@ -45,9 +46,15 @@ export default function ExportComponent() {
       icon: DocumentTextIcon,
     },
     {
+      id: 'json',
+      name: 'JSON Document',
+      description: 'Export as JSON for structured data',
+      icon: CodeBracketIcon,
+    },
+    {
       id: 'xml',
       name: 'XML Document',
-      description: 'Export as XML for structured data',
+      description: 'Export as generic XML format',
       icon: CodeBracketIcon,
     },
     {
@@ -58,6 +65,12 @@ export default function ExportComponent() {
     },
   ];
 
+  const languageOptions = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'mr', name: 'मराठी', flag: '🇮🇳' },
+  ];
+
   const handleExport = async (format: string) => {
     if (!fileId || !data) {
       toast.error('No data available for export');
@@ -65,7 +78,7 @@ export default function ExportComponent() {
     }
 
     setIsExporting(true);
-    const toastId = toast.loading(`Exporting as ${format.toUpperCase()}...`);
+    const toastId = toast.loading(`Exporting as ${format.toUpperCase()} in ${languageOptions.find(l => l.code === selectedLanguage)?.name || 'English'}...`);
 
     try {
       const response = await axios.post(
@@ -73,22 +86,60 @@ export default function ExportComponent() {
         {
           data,
           clientName: 'export',
+          language: selectedLanguage, // Include language in request
+          localization: {
+            dateFormat: selectedLanguage === 'en' ? 'MM/DD/YYYY' : 'DD/MM/YYYY',
+            currency: '₹',
+            numberFormat: selectedLanguage === 'en' ? 'US' : 'IN'
+          }
         },
         {
           responseType: 'blob',
+          timeout: 30000, // 30 second timeout
+          headers: {
+            'Content-Type': 'application/json',
+          },
         }
       );
 
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Get proper MIME type based on format
+      const mimeTypes: Record<string, string> = {
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'csv': 'text/csv',
+        'json': 'application/json',
+        'xml': 'application/xml',
+        'tally': 'application/xml'
+      };
+
+      const mimeType = mimeTypes[format] || 'application/octet-stream';
+
+      // Create download link with proper MIME type
+      const blob = new Blob([response.data], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       
-      // Get filename from headers or use default
+      // Get filename from headers or generate default with language suffix
+      let filename = '';
       const contentDisposition = response.headers['content-disposition'];
-      const filename = contentDisposition
-        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
-        : `export.${format}`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+      
+      if (!filename) {
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const extensions: Record<string, string> = {
+          'xlsx': 'xlsx',
+          'csv': 'csv', 
+          'json': 'json',
+          'xml': 'xml',
+          'tally': 'xml'
+        };
+        filename = `export_${selectedLanguage}_${timestamp}.${extensions[format] || format}`;
+      }
       
       link.setAttribute('download', filename);
       document.body.appendChild(link);
@@ -96,11 +147,22 @@ export default function ExportComponent() {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
+      toast.success(`Successfully exported as ${format.toUpperCase()} in ${languageOptions.find(l => l.code === selectedLanguage)?.name}`, { id: toastId });
     } catch (error: any) {
       console.error('Export error:', error);
-      const errorMessage = error.response?.data?.detail || error.message || 'Export failed';
-      toast.error(`Export failed: ${errorMessage}`, { id: toastId });
+      let errorMessage = 'Export failed';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'Data not found. Please validate your data first.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error during export. Please try again.';
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Export timeout. Please try again.';
+      } else {
+        errorMessage = error.response?.data?.detail || error.message || errorMessage;
+      }
+      
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setIsExporting(false);
     }
@@ -176,49 +238,90 @@ export default function ExportComponent() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {exportFormats.map((format) => {
-            const IconComponent = format.icon;
-            const isDisabled = format.disabled || isExporting;
-
-            return (
+        {/* Language Selection */}
+        <div className="mb-8">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+            Select Export Language
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {languageOptions.map((lang) => (
               <button
-                key={format.id}
-                onClick={() => handleExport(format.id)}
-                disabled={isDisabled}
-                className={`
-                  relative p-6 rounded-lg border-2 transition-all duration-200
-                  ${
-                    isDisabled
-                      ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-50'
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md cursor-pointer'
-                  }
-                `}
+                key={lang.code}
+                onClick={() => setSelectedLanguage(lang.code)}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  selectedLanguage === lang.code
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
               >
-                <div className="flex flex-col items-center text-center">
-                  <IconComponent 
-                    className={`h-8 w-8 mb-3 ${
-                      isDisabled 
-                        ? 'text-gray-400 dark:text-gray-600' 
-                        : 'text-blue-600 dark:text-blue-400'
-                    }`} 
-                  />
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-                    {format.name}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {format.description}
-                  </p>
+                <div className="flex items-center justify-center space-x-3">
+                  <span className="text-2xl">{lang.flag}</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {lang.name}
+                  </span>
                 </div>
-                
-                {isExporting && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 bg-opacity-90 dark:bg-opacity-90 rounded-lg">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                {selectedLanguage === lang.code && (
+                  <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                    ✓ Selected
                   </div>
                 )}
               </button>
-            );
-          })}
+            ))}
+          </div>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            The exported file will use localized date formats, number formats, and column headers based on your selection.
+          </p>
+        </div>
+
+        {/* Export Formats */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">
+            Choose Export Format
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {exportFormats.map((format) => {
+              const IconComponent = format.icon;
+              const isDisabled = format.disabled || isExporting;
+
+              return (
+                <button
+                  key={format.id}
+                  onClick={() => handleExport(format.id)}
+                  disabled={isDisabled}
+                  className={`
+                    relative p-6 rounded-lg border-2 transition-all duration-200
+                    ${
+                      isDisabled
+                        ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-50'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md cursor-pointer'
+                    }
+                  `}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <IconComponent 
+                      className={`h-8 w-8 mb-3 ${
+                        isDisabled 
+                          ? 'text-gray-400 dark:text-gray-600' 
+                          : 'text-blue-600 dark:text-blue-400'
+                      }`} 
+                    />
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                      {format.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {format.description}
+                    </p>
+                  </div>
+                  
+                  {isExporting && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 bg-opacity-90 dark:bg-opacity-90 rounded-lg">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Data Summary */}

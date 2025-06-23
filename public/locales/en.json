@@ -25,9 +25,13 @@
   },
   "navigation": {
     "home": "Home",
-    "upload": "Upload",
+    "upload": "Upload", 
     "preview": "Preview",
+    "convert": "Convert",
+    "validate": "Validate",
     "export": "Export",
+    "bankMatcher": "Bank Matcher",
+    "gstHelper": "GST Helper",
     "profile": "Profile",
     "logout": "Logout"
   },
