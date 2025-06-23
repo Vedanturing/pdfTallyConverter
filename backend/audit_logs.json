@@ -1,0 +1,772 @@
+[
+  {
+    "timestamp": "2025-06-18T06:10:52.762754",
+    "action_type": "error",
+    "summary": "Failed to convert file de4571fa-eab0-4db3-8c82-d40a6ef807ef",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "No data received from conversion",
+      "fileId": "de4571fa-eab0-4db3-8c82-d40a6ef807ef"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:11:51.644628",
+    "action_type": "error",
+    "summary": "Failed to convert file de4571fa-eab0-4db3-8c82-d40a6ef807ef",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "No data received from conversion",
+      "fileId": "de4571fa-eab0-4db3-8c82-d40a6ef807ef"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:11:53.033168",
+    "action_type": "error",
+    "summary": "Failed to convert file de4571fa-eab0-4db3-8c82-d40a6ef807ef",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "No data received from conversion",
+      "fileId": "de4571fa-eab0-4db3-8c82-d40a6ef807ef"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:12:01.567848",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000175,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:12:01.581322",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.00537,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:12:02.222063",
+    "action_type": "error",
+    "summary": "Failed to convert file 623a8dc4-8186-4cc6-91ba-3ea016602505",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "No data received from conversion",
+      "fileId": "623a8dc4-8186-4cc6-91ba-3ea016602505"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:12:03.171765",
+    "action_type": "error",
+    "summary": "Failed to convert file 623a8dc4-8186-4cc6-91ba-3ea016602505",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "No data received from conversion",
+      "fileId": "623a8dc4-8186-4cc6-91ba-3ea016602505"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:12:06.570620",
+    "action_type": "error",
+    "summary": "Failed to convert file 623a8dc4-8186-4cc6-91ba-3ea016602505",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "No data received from conversion",
+      "fileId": "623a8dc4-8186-4cc6-91ba-3ea016602505"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:13:12.097554",
+    "action_type": "error",
+    "summary": "Failed to convert file 623a8dc4-8186-4cc6-91ba-3ea016602505",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "No data received from conversion",
+      "fileId": "623a8dc4-8186-4cc6-91ba-3ea016602505"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:16:26.809989",
+    "action_type": "convert",
+    "summary": "Converted file 623a8dc4-8186-4cc6-91ba-3ea016602505 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "623a8dc4-8186-4cc6-91ba-3ea016602505"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:17:49.324932",
+    "action_type": "convert",
+    "summary": "Converted file 623a8dc4-8186-4cc6-91ba-3ea016602505 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "623a8dc4-8186-4cc6-91ba-3ea016602505"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:18:26.099509",
+    "action_type": "convert",
+    "summary": "Converted file 623a8dc4-8186-4cc6-91ba-3ea016602505 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "623a8dc4-8186-4cc6-91ba-3ea016602505"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T06:18:32.296164",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/623a8dc4-8186-4cc6-91ba-3ea016602505/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.029802,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T07:14:04.398262",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.00039,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T07:14:04.437656",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.026258,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T07:14:05.187550",
+    "action_type": "error",
+    "summary": "Failed to convert file 2af90306-c130-448b-b20b-607889839142",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "2af90306-c130-448b-b20b-607889839142"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T07:14:24.307428",
+    "action_type": "error",
+    "summary": "Failed to convert file 2af90306-c130-448b-b20b-607889839142",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "2af90306-c130-448b-b20b-607889839142"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T07:14:39.842568",
+    "action_type": "error",
+    "summary": "Failed to convert file 2af90306-c130-448b-b20b-607889839142",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "2af90306-c130-448b-b20b-607889839142"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:53:58.287583",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000396,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:53:58.307451",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.015844,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:53:59.137759",
+    "action_type": "convert",
+    "summary": "Converted file 7806aea9-374c-41f6-b891-683ce8fa4846 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 12,
+      "fileId": "7806aea9-374c-41f6-b891-683ce8fa4846"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:54:03.195497",
+    "action_type": "convert",
+    "summary": "Converted file 7806aea9-374c-41f6-b891-683ce8fa4846 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 12,
+      "fileId": "7806aea9-374c-41f6-b891-683ce8fa4846"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:54:13.657876",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/7806aea9-374c-41f6-b891-683ce8fa4846/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.041421,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:55:48.705837",
+    "action_type": "convert",
+    "summary": "Converted file 7806aea9-374c-41f6-b891-683ce8fa4846 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 12,
+      "fileId": "7806aea9-374c-41f6-b891-683ce8fa4846"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:55:53.433168",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.032755,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:55:54.435734",
+    "action_type": "error",
+    "summary": "Failed to convert file 78fb2fee-462a-4acd-81ef-bf6be74d7e2f",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "78fb2fee-462a-4acd-81ef-bf6be74d7e2f"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:56:04.205922",
+    "action_type": "error",
+    "summary": "Failed to convert file 78fb2fee-462a-4acd-81ef-bf6be74d7e2f",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "78fb2fee-462a-4acd-81ef-bf6be74d7e2f"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:56:13.442349",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.054107,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:56:14.389012",
+    "action_type": "error",
+    "summary": "Failed to convert file 270d4edd-f579-4930-846b-3e40b083c613",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "270d4edd-f579-4930-846b-3e40b083c613"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:56:18.578244",
+    "action_type": "error",
+    "summary": "Failed to convert file 270d4edd-f579-4930-846b-3e40b083c613",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "270d4edd-f579-4930-846b-3e40b083c613"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:56:23.424158",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.007794,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:56:24.178192",
+    "action_type": "convert",
+    "summary": "Converted file 5faaa4f0-b3dc-463b-bcfe-5370be4f710e to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 12,
+      "fileId": "5faaa4f0-b3dc-463b-bcfe-5370be4f710e"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:56:29.734093",
+    "action_type": "convert",
+    "summary": "Converted file 5faaa4f0-b3dc-463b-bcfe-5370be4f710e to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 12,
+      "fileId": "5faaa4f0-b3dc-463b-bcfe-5370be4f710e"
+    }
+  },
+  {
+    "timestamp": "2025-06-18T08:56:38.653715",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/5faaa4f0-b3dc-463b-bcfe-5370be4f710e/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.025064,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T06:30:22.787282",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000296,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T06:30:22.811853",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.020949,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T06:30:23.513272",
+    "action_type": "error",
+    "summary": "Failed to convert file 2c5160cb-5fb2-4c3c-8ae7-c77ffc3dd36a",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "2c5160cb-5fb2-4c3c-8ae7-c77ffc3dd36a"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T06:30:36.114977",
+    "action_type": "error",
+    "summary": "Failed to convert file 2c5160cb-5fb2-4c3c-8ae7-c77ffc3dd36a",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: No data extracted from file",
+      "fileId": "2c5160cb-5fb2-4c3c-8ae7-c77ffc3dd36a"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T06:30:42.562803",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.011236,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T06:30:43.270999",
+    "action_type": "convert",
+    "summary": "Converted file d3773cf8-39fd-48eb-a2d4-609847181921 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 12,
+      "fileId": "d3773cf8-39fd-48eb-a2d4-609847181921"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T06:30:44.535324",
+    "action_type": "convert",
+    "summary": "Converted file d3773cf8-39fd-48eb-a2d4-609847181921 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 12,
+      "fileId": "d3773cf8-39fd-48eb-a2d4-609847181921"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T06:30:52.025902",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/d3773cf8-39fd-48eb-a2d4-609847181921/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.030839,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:21:30.077544",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000314,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:21:30.094377",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.013255,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:21:30.826362",
+    "action_type": "convert",
+    "summary": "Converted file 22aabd2c-0e15-4da7-9424-6104bb242dd5 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "22aabd2c-0e15-4da7-9424-6104bb242dd5"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:21:35.274068",
+    "action_type": "convert",
+    "summary": "Converted file 22aabd2c-0e15-4da7-9424-6104bb242dd5 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "22aabd2c-0e15-4da7-9424-6104bb242dd5"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:23:05.976676",
+    "action_type": "convert",
+    "summary": "Converted file 22aabd2c-0e15-4da7-9424-6104bb242dd5 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "22aabd2c-0e15-4da7-9424-6104bb242dd5"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:28:25.335849",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.007182,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:28:26.019815",
+    "action_type": "convert",
+    "summary": "Converted file 89312436-6147-48db-a89f-2fc7b0253429 to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "89312436-6147-48db-a89f-2fc7b0253429"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:47:28.553706",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000249,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:47:28.567470",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.010281,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:47:29.401599",
+    "action_type": "convert",
+    "summary": "Converted file b9848e03-8d68-4db1-a6c6-ca96be925c9e to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "b9848e03-8d68-4db1-a6c6-ca96be925c9e"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:47:37.348961",
+    "action_type": "convert",
+    "summary": "Converted file b9848e03-8d68-4db1-a6c6-ca96be925c9e to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 10,
+      "fileId": "b9848e03-8d68-4db1-a6c6-ca96be925c9e"
+    }
+  },
+  {
+    "timestamp": "2025-06-19T07:47:40.363809",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/b9848e03-8d68-4db1-a6c6-ca96be925c9e/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.037236,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:06:07.729390",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000242,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:06:07.735987",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.003838,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:06:08.484711",
+    "action_type": "error",
+    "summary": "Failed to convert file a03151d5-1ad7-4fc6-b380-4421f45ea157",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: Failed to process image: tesseract is not installed or it's not in your PATH. See README file for more information.",
+      "fileId": "a03151d5-1ad7-4fc6-b380-4421f45ea157"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:06:11.964809",
+    "action_type": "error",
+    "summary": "Failed to convert file a03151d5-1ad7-4fc6-b380-4421f45ea157",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: Failed to process image: tesseract is not installed or it's not in your PATH. See README file for more information.",
+      "fileId": "a03151d5-1ad7-4fc6-b380-4421f45ea157"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:06:18.799564",
+    "action_type": "error",
+    "summary": "Failed to convert file a03151d5-1ad7-4fc6-b380-4421f45ea157",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: Failed to process image: tesseract is not installed or it's not in your PATH. See README file for more information.",
+      "fileId": "a03151d5-1ad7-4fc6-b380-4421f45ea157"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:07:09.096812",
+    "action_type": "error",
+    "summary": "Failed to convert file a03151d5-1ad7-4fc6-b380-4421f45ea157",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: Failed to process image: tesseract is not installed or it's not in your PATH. See README file for more information.",
+      "fileId": "a03151d5-1ad7-4fc6-b380-4421f45ea157"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:21:02.672189",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000504,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:21:02.692689",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.005278,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:21:03.554304",
+    "action_type": "error",
+    "summary": "Failed to convert file 308a9e06-e9d6-47f5-bf66-11cd7da6b186",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: Failed to process image: tesseract is not installed or it's not in your PATH. See README file for more information.",
+      "fileId": "308a9e06-e9d6-47f5-bf66-11cd7da6b186"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:21:04.720169",
+    "action_type": "error",
+    "summary": "Failed to convert file 308a9e06-e9d6-47f5-bf66-11cd7da6b186",
+    "user_id": "anonymous",
+    "metadata": {
+      "error": "Error converting file: Failed to process image: tesseract is not installed or it's not in your PATH. See README file for more information.",
+      "fileId": "308a9e06-e9d6-47f5-bf66-11cd7da6b186"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:36:28.212141",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.020488,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:36:28.220717",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.005533,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:37:03.040350",
+    "action_type": "convert",
+    "summary": "Converted file 13a65b79-bb3e-46a8-9cd4-24191cd3557d to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 37,
+      "fileId": "13a65b79-bb3e-46a8-9cd4-24191cd3557d"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:37:03.050914",
+    "action_type": "convert",
+    "summary": "Converted file 13a65b79-bb3e-46a8-9cd4-24191cd3557d to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 37,
+      "fileId": "13a65b79-bb3e-46a8-9cd4-24191cd3557d"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:37:03.059466",
+    "action_type": "convert",
+    "summary": "Converted file 13a65b79-bb3e-46a8-9cd4-24191cd3557d to table format",
+    "user_id": "anonymous",
+    "metadata": {
+      "rowCount": 37,
+      "fileId": "13a65b79-bb3e-46a8-9cd4-24191cd3557d"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:38:04.188444",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/13a65b79-bb3e-46a8-9cd4-24191cd3557d/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.018019,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-23T05:38:45.207499",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/13a65b79-bb3e-46a8-9cd4-24191cd3557d/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.026802,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  }
+]

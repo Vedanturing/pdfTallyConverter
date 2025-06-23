@@ -1,0 +1,11 @@
+<html>
+<head>
+<title>Inline CSS</title>
+</head>
+<body> 
+<h1 style="Color:Red;border-style:double;border-colour:Yellow">
+    Hello & Welcome</h1><br>
+<h1>This is React lab</h1>
+</body>
+</html>
+     

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pdf-tally-converter-api
+    env: python
+    buildCommand: |
+      sudo apt-get update && sudo apt-get install -y tesseract-ocr libgl1-mesa-glx libglib2.0-0
+      pip install -r requirements.txt
+    startCommand: cd /opt/render/project/src/pdfTallyConverter/backend && uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: PORT
+        value: 8000
+      - key: PYTHONUNBUFFERED
+        value: "true"
+      - key: PYTHONPATH
+        value: /opt/render/project/src/pdfTallyConverter/backend
+    healthCheckPath: /health
+    autoDeploy: true 
