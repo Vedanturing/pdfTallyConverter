@@ -1,0 +1,305 @@
+{
+  "data": [
+    {
+      "id": "row-0",
+      "date": "2025-04-01",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "ATM Withdrawal",
+      "balance": 41338.0
+    },
+    {
+      "id": "row-1",
+      "date": "2025-04-04",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Online Transfer",
+      "balance": 40953.57
+    },
+    {
+      "id": "row-2",
+      "date": "2025-04-06",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "EMI Payment",
+      "balance": 45859.44
+    },
+    {
+      "id": "row-3",
+      "date": "2025-04-09",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Salary",
+      "balance": 4117.86
+    },
+    {
+      "id": "row-4",
+      "date": "2025-04-10",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Utility Bill",
+      "balance": 53891.19
+    },
+    {
+      "id": "row-5",
+      "date": "2025-04-11",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Utility Bill",
+      "balance": 59267.82
+    },
+    {
+      "id": "row-6",
+      "date": "2025-04-12",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "EMI Payment",
+      "balance": 63549.29
+    },
+    {
+      "id": "row-7",
+      "date": "2025-04-13",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Salary Credit",
+      "balance": 64072.34
+    },
+    {
+      "id": "row-8",
+      "date": "2025-04-15",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Utility Bill",
+      "balance": 69428.66
+    },
+    {
+      "id": "row-9",
+      "date": "2025-04-16",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Salary",
+      "balance": 3520.76
+    },
+    {
+      "id": "row-10",
+      "date": "2025-04-17",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "Salary Credit",
+      "balance": 74897.61
+    },
+    {
+      "id": "row-11",
+      "date": "2025-04-20",
+      "voucherNo": "",
+      "ledgerName": "",
+      "amount": 0,
+      "narration": "EMI Payment",
+      "balance": 77424.88
+    }
+  ],
+  "formats": [
+    "xlsx"
+  ],
+  "validation": {
+    "results": {
+      "is_valid": false,
+      "errors": [
+        "Missing required columns: description"
+      ],
+      "warnings": []
+    },
+    "financial": {
+      "is_valid": false,
+      "errors": [
+        {
+          "row": 1,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 2,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 3,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 4,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 5,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 6,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 7,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 8,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 9,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 10,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 11,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 12,
+          "errors": [
+            "Missing required field: description",
+            "Missing required field: amount"
+          ]
+        }
+      ]
+    },
+    "summary": {
+      "total_rows": 12,
+      "empty_fields": [
+        {
+          "row": 1,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 2,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 3,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 4,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 5,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 6,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 7,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 8,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 9,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 10,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 11,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        },
+        {
+          "row": 12,
+          "fields": [
+            "voucherNo",
+            "ledgerName"
+          ]
+        }
+      ],
+      "numeric_issues": [],
+      "date_issues": [],
+      "duplicate_entries": []
+    }
+  }
+}

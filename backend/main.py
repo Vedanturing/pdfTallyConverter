@@ -36,6 +36,13 @@ from gst_helper import GSTHelper
 import fitz
 from PyPDF2 import PdfReader
 from audit_logger import audit_logger
+import multiprocessing
+from cachetools import TTLCache
+import hashlib
+from functools import lru_cache, wraps
+import psutil
+import threading
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -44,6 +51,46 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
+
+# Performance optimization - file processing cache
+file_cache = TTLCache(maxsize=100, ttl=3600)  # Cache for 1 hour
+
+def get_file_hash(file_path: str) -> str:
+    """Generate a hash for file content to use as cache key"""
+    hash_sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()[:16]  # Use first 16 chars for shorter keys
+
+def cached_file_processing(func):
+    """Decorator for caching file processing results"""
+    @wraps(func)
+    def wrapper(file_path: str, *args, **kwargs):
+        try:
+            # Create cache key from file hash and function args
+            file_hash = get_file_hash(file_path)
+            cache_key = f"{func.__name__}_{file_hash}_{str(args)}_{str(sorted(kwargs.items()))}"
+            
+            # Check cache first
+            if cache_key in file_cache:
+                logger.info(f"Cache hit for {func.__name__}: {file_path}")
+                return file_cache[cache_key]
+            
+            # Process file if not in cache
+            result = func(file_path, *args, **kwargs)
+            
+            # Store in cache
+            file_cache[cache_key] = result
+            logger.info(f"Cached result for {func.__name__}: {file_path}")
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error in cached processing: {str(e)}")
+            # Fallback to direct function call if caching fails
+            return func(file_path, *args, **kwargs)
+    
+    return wrapper
 
 app = FastAPI(
     title="PDF Tally Converter API",
@@ -147,8 +194,9 @@ CHUNK_SIZE = 1024 * 1024  # 1MB chunks for file handling
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(CONVERTED_DIR, exist_ok=True)
 
-# Initialize process pool for CPU-intensive tasks
-process_pool = ProcessPoolExecutor()
+# Initialize process pool for CPU-intensive tasks with optimal worker count
+MAX_WORKERS = min(32, (multiprocessing.cpu_count() or 1) + 4)
+process_pool = ProcessPoolExecutor(max_workers=MAX_WORKERS)
 
 # Initialize bank matcher
 bank_matcher = BankMatcher()
@@ -205,14 +253,20 @@ class SavePayload(BaseModel):
     editHistory: List[EditHistory]
 
 async def save_upload_file(upload_file: UploadFile) -> tuple[str, str]:
-    """Save uploaded file and return the file path"""
+    """Save uploaded file and return the file path with optimized streaming"""
     file_id = str(uuid.uuid4())
     file_extension = os.path.splitext(upload_file.filename)[1]
     file_path = os.path.join(UPLOAD_DIR, f"{file_id}{file_extension}")
     
     try:
+        # Use larger chunk size for better performance
+        OPTIMIZED_CHUNK_SIZE = 8 * 1024 * 1024  # 8MB chunks
+        
         async with aiofiles.open(file_path, 'wb') as out_file:
-            while chunk := await upload_file.read(CHUNK_SIZE):
+            while True:
+                chunk = await upload_file.read(OPTIMIZED_CHUNK_SIZE)
+                if not chunk:
+                    break
                 await out_file.write(chunk)
         
         return file_path, file_id
@@ -222,6 +276,7 @@ async def save_upload_file(upload_file: UploadFile) -> tuple[str, str]:
             os.remove(file_path)
         raise HTTPException(status_code=500, detail=str(e))
 
+@cached_file_processing
 def extract_tables_from_pdf(file_path: str, use_hybrid: bool = True) -> pd.DataFrame:
     """Extract tables from PDF using hybrid parser with fallback to existing parser"""
     logger.info(f"Extracting tables from PDF: {file_path} (hybrid={use_hybrid})")
@@ -422,6 +477,7 @@ def _extract_tables_original(file_path: str) -> pd.DataFrame:
         logger.error(traceback.format_exc())
         return pd.DataFrame()
 
+@cached_file_processing
 def process_image_ocr(file_path: str) -> pd.DataFrame:
     """Process image using OCR to extract tabular data with fallback when tesseract is not available"""
     logger.info(f"Processing image using OCR: {file_path}")
@@ -2725,6 +2781,62 @@ async def generate_gst_reports(file_id: str, request: Request):
     except Exception as e:
         logger.error(f"Error generating GST reports: {str(e)}")
         raise HTTPException(status_code=500, detail=f"GST report generation failed: {str(e)}")
+
+# Add after other initialization code, before routes
+def cleanup_old_files():
+    """Clean up old files to free up disk space"""
+    current_time = time.time()
+    max_age = 24 * 60 * 60  # 24 hours in seconds
+    
+    for directory in [UPLOAD_DIR, CONVERTED_DIR]:
+        if not os.path.exists(directory):
+            continue
+            
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                file_age = current_time - os.path.getmtime(file_path)
+                if file_age > max_age:
+                    try:
+                        os.remove(file_path)
+                        logger.info(f"Cleaned up old file: {file_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to clean up {file_path}: {str(e)}")
+
+def memory_monitor():
+    """Monitor memory usage and clean up cache if needed"""
+    while True:
+        try:
+            memory_percent = psutil.virtual_memory().percent
+            if memory_percent > 85:  # If memory usage > 85%
+                logger.warning(f"High memory usage: {memory_percent}%")
+                # Clear file cache
+                file_cache.clear()
+                logger.info("Cleared file cache due to high memory usage")
+                
+            time.sleep(300)  # Check every 5 minutes
+        except Exception as e:
+            logger.error(f"Error in memory monitor: {str(e)}")
+            time.sleep(300)
+
+def file_cleanup_scheduler():
+    """Schedule file cleanup every hour"""
+    while True:
+        try:
+            cleanup_old_files()
+            time.sleep(3600)  # Run every hour
+        except Exception as e:
+            logger.error(f"Error in file cleanup: {str(e)}")
+            time.sleep(3600)
+
+# Start background threads for maintenance
+cleanup_thread = threading.Thread(target=file_cleanup_scheduler, daemon=True)
+cleanup_thread.start()
+
+memory_thread = threading.Thread(target=memory_monitor, daemon=True)
+memory_thread.start()
+
+logger.info("Background maintenance threads started")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

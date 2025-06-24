@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "file_id": "c4a41a12-8e76-4335-96d1-5a8b369444e6",
+    "language": "hi",
+    "export_date": "2025-06-24T12:14:46.610242",
+    "data_source": "provided",
+    "localization": {
+      "date_format": "%d/%m/%Y",
+      "number_format": "IN",
+      "currency_symbol": "₹",
+      "headers": {
+        "date": "दिनांक",
+        "description": "विवरण",
+        "debit": "डेबिट",
+        "credit": "क्रेडिट",
+        "balance": "शेष",
+        "reference": "संदर्भ",
+        "amount": "राशि"
+      }
+    }
+  },
+  "data": [
+    {
+      "id": "row-0",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "ATM Withdrawal",
+      "शेष": ""
+    },
+    {
+      "id": "row-1",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "Online Transfer",
+      "शेष": ""
+    },
+    {
+      "id": "row-2",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "EMI Payment",
+      "शेष": ""
+    },
+    {
+      "id": "row-3",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "Salary",
+      "शेष": ""
+    },
+    {
+      "id": "row-4",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "Utility Bill",
+      "शेष": ""
+    },
+    {
+      "id": "row-5",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "Utility Bill",
+      "शेष": ""
+    },
+    {
+      "id": "row-6",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "EMI Payment",
+      "शेष": ""
+    },
+    {
+      "id": "row-7",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "Salary Credit",
+      "शेष": ""
+    },
+    {
+      "id": "row-8",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "Utility Bill",
+      "शेष": ""
+    },
+    {
+      "id": "row-9",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "Salary",
+      "शेष": ""
+    },
+    {
+      "id": "row-10",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "Salary Credit",
+      "शेष": ""
+    },
+    {
+      "id": "row-11",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "राशि": "",
+      "narration": "EMI Payment",
+      "शेष": ""
+    }
+  ]
+}

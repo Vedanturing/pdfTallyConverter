@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "file_id": "c4a41a12-8e76-4335-96d1-5a8b369444e6",
+    "language": "en",
+    "export_date": "2025-06-24T12:14:26.324624",
+    "data_source": "provided",
+    "localization": {
+      "date_format": "%m/%d/%Y",
+      "number_format": "US",
+      "currency_symbol": "₹",
+      "headers": {
+        "date": "Date",
+        "description": "Description",
+        "debit": "Debit",
+        "credit": "Credit",
+        "balance": "Balance",
+        "reference": "Reference",
+        "amount": "Amount"
+      }
+    }
+  },
+  "data": [
+    {
+      "id": "row-0",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "ATM Withdrawal",
+      "Balance": ""
+    },
+    {
+      "id": "row-1",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "Online Transfer",
+      "Balance": ""
+    },
+    {
+      "id": "row-2",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "EMI Payment",
+      "Balance": ""
+    },
+    {
+      "id": "row-3",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "Salary",
+      "Balance": ""
+    },
+    {
+      "id": "row-4",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "Utility Bill",
+      "Balance": ""
+    },
+    {
+      "id": "row-5",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "Utility Bill",
+      "Balance": ""
+    },
+    {
+      "id": "row-6",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "EMI Payment",
+      "Balance": ""
+    },
+    {
+      "id": "row-7",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "Salary Credit",
+      "Balance": ""
+    },
+    {
+      "id": "row-8",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "Utility Bill",
+      "Balance": ""
+    },
+    {
+      "id": "row-9",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "Salary",
+      "Balance": ""
+    },
+    {
+      "id": "row-10",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "Salary Credit",
+      "Balance": ""
+    },
+    {
+      "id": "row-11",
+      "Date": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "Amount": "",
+      "narration": "EMI Payment",
+      "Balance": ""
+    }
+  ]
+}

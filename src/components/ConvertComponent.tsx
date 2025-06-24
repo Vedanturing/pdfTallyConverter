@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { API_URL } from '../config';
 import {
@@ -25,7 +25,7 @@ interface ExportFormat {
   id: string;
   name: string;
   extension: string;
-  icon: React.ForwardRefExoticComponent<any>;
+  icon: React.ComponentType<any>;
   description: string;
 }
 
@@ -59,6 +59,7 @@ const ConvertComponent: React.FC = () => {
   const [convertedFormats, setConvertedFormats] = useState<Set<string>>(new Set());
   const [tableData, setTableData] = useState<FinancialEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [conversionStatus, setConversionStatus] = useState<ConversionStatus>({ status: 'pending' });
   const navigate = useNavigate();
   const location = useLocation();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -90,12 +91,13 @@ const ConvertComponent: React.FC = () => {
       // If coming from preview with skip processing flag, mark as already processed
       if (state.fromPreview && state.skipProcessing) {
         setConvertedFormats(new Set(['xlsx', 'csv', 'xml'])); // Mark as converted
+        setConversionStatus({ status: 'completed' });
         toast.success('Using cached data for faster processing!');
       }
     }
   }, [location.state, navigate]);
 
-  const handleExport = async (format: string) => {
+  const handleExport = useCallback(async (format: string) => {
     if (!currentFile?.id) {
       toast.error('No file selected');
       return;
@@ -104,15 +106,26 @@ const ConvertComponent: React.FC = () => {
     const toastId = toast.loading(`Converting to ${format.toUpperCase()}...`);
     setLoading(true);
     setError(null);
+    setConversionStatus({ status: 'processing', progress: 0 });
     
     try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setConversionStatus(prev => ({
+          ...prev,
+          progress: Math.min((prev.progress || 0) + 10, 90)
+        }));
+      }, 500);
+
       // Check if we already have converted data and can skip API conversion
       const hasData = tableData.length > 0;
       const isAlreadyConverted = convertedFormats.has(format);
       
       if (!hasData || !isAlreadyConverted) {
         // Only call convert API if we don't have data or format not converted
-        const convertResponse = await axios.post(`${API_URL}/convert/${currentFile.id}`);
+        const convertResponse = await axios.post(`${API_URL}/convert/${currentFile.id}`, {}, {
+          timeout: 120000 // 2 minute timeout
+        });
         
         // Update table data if available
         if (convertResponse.data?.data?.rows) {
@@ -120,20 +133,40 @@ const ConvertComponent: React.FC = () => {
         }
       }
 
-      // Always try to download the converted file
-      const downloadResponse = await axios.get(`${API_URL}/api/convert/${currentFile.id}/${format}`, {
-        responseType: 'blob',
-        headers: {
-          'Accept': format === 'xlsx' 
-            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            : format === 'csv'
-            ? 'text/csv'
-            : 'application/xml'
+      // Always try to download the converted file with retry logic
+      let downloadResponse;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          downloadResponse = await axios.get(`${API_URL}/api/convert/${currentFile.id}/${format}`, {
+            responseType: 'blob',
+            timeout: 60000, // 1 minute timeout for download
+            headers: {
+              'Accept': format === 'xlsx' 
+                ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                : format === 'csv'
+                ? 'text/csv'
+                : 'application/xml'
+            }
+          });
+          break; // Success, exit retry loop
+        } catch (error) {
+          retryCount++;
+          if (retryCount === maxRetries) throw error;
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          toast.loading(`Retry ${retryCount}/${maxRetries}...`, { id: toastId });
         }
-      });
+      }
+
+      clearInterval(progressInterval);
+      setConversionStatus({ status: 'completed', progress: 100 });
 
       // Check if we got a valid blob response
-      if (!downloadResponse.data || downloadResponse.data.size === 0) {
+      if (!downloadResponse?.data || downloadResponse.data.size === 0) {
         throw new Error('Received empty response from server');
       }
 
@@ -151,36 +184,38 @@ const ConvertComponent: React.FC = () => {
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `converted-file.${format}`;
-      
-      // Trigger download
-      document.body.appendChild(a);
-      a.click();
-      
-      // Cleanup after a short delay to ensure download starts
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }, 200);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `converted_data.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
 
-      toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
+      toast.success(`${format.toUpperCase()} file downloaded successfully!`, { id: toastId });
+
     } catch (error: any) {
-      console.error('Export error:', error);
-      // Only treat actual errors as errors
-      if (error.message === 'File converted successfully') {
-        toast.success(`Successfully exported as ${format.toUpperCase()}`, { id: toastId });
-      } else {
-        const errorMessage = error.response?.data?.detail || error.message || 'Export failed';
-        setError(errorMessage);
-        toast.error(`Failed to export: ${errorMessage}`, { id: toastId });
+      console.error(`Error exporting to ${format}:`, error);
+      setConversionStatus({ status: 'failed', error: error.message });
+      
+      let errorMessage = `Failed to export to ${format.toUpperCase()}`;
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'File not found. Please try converting again.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
       }
+      
+      toast.error(errorMessage, { id: toastId });
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentFile?.id, tableData, convertedFormats]);
 
   const handleBack = () => {
     navigate('/preview', { 
