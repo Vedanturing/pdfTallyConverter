@@ -7,6 +7,7 @@ import ViewComponent from './components/ViewComponent';
 import ConvertComponent from './components/ConvertComponent';
 import ValidationComponent from './components/ValidationComponent';
 import ExportComponent from './components/ExportComponent';
+import MultipleFileUpload from './components/MultipleFileUpload';
 import WorkflowStepper from './components/WorkflowStepper';
 import { Toaster } from 'react-hot-toast';
 import { initPdfWorker, cleanupPdfWorker } from './utils/pdfjs-config';
@@ -20,10 +21,15 @@ import {
 } from '@heroicons/react/24/outline';
 import BankMatcher from './components/BankMatcher';
 import GSTHelper from './components/GSTHelper';
+import GSTReconciliation from './components/GSTReconciliation';
 
 // Initialize i18n
 import './i18n/config';
 import { useLanguageStore } from './store/languageStore';
+import { useAuthStore } from './store/authStore';
+import { AuthModal } from './components/auth/AuthModal';
+import { HistoryList } from './components/history/HistoryList';
+import { DeleteAccountModal } from './components/auth/DeleteAccountModal';
 
 const steps = [
   { title: 'Upload', icon: DocumentArrowUpIcon },
@@ -36,13 +42,20 @@ const steps = [
 function AppContent() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [currentStep, setCurrentStep] = useState(0);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { initializeLanguage } = useLanguageStore();
+  const { checkAuth } = useAuthStore();
 
   useEffect(() => {
     // Initialize language settings
     initializeLanguage();
+    
+    // Check authentication state on app load
+    checkAuth();
     
     // Initialize PDF worker
     initPdfWorker();
@@ -58,13 +71,15 @@ function AppContent() {
       setCurrentStep(1);
     } else if (location.pathname === '/convert') {
       setCurrentStep(2);
+    } else if (location.pathname === '/history') {
+      setShowHistoryModal(true);
     }
 
     // Cleanup PDF worker on unmount
     return () => {
       cleanupPdfWorker();
     };
-  }, [location.pathname]);
+  }, [location.pathname, checkAuth, initializeLanguage]);
 
   const toggleTheme = () => {
     setTheme(prevTheme => {
@@ -97,7 +112,13 @@ function AppContent() {
 
   return (
     <div className={theme}>
-      <Layout theme={theme} onToggleTheme={toggleTheme}>
+      <Layout 
+        theme={theme} 
+        onToggleTheme={toggleTheme}
+        onShowAuth={() => setShowAuthModal(true)}
+        onShowHistory={() => setShowHistoryModal(true)}
+        onShowDeleteAccount={() => setShowDeleteAccountModal(true)}
+      >
         <div className="space-y-8">
           <div className="prose dark:prose-invert max-w-none">
             <h1 className="text-4xl font-bold tracking-tight">PDF Tally Converter</h1>
@@ -136,6 +157,12 @@ function AppContent() {
               } 
             />
             <Route 
+              path="/convert/:fileId" 
+              element={
+                <ConvertComponent />
+              } 
+            />
+            <Route 
               path="/validate" 
               element={
                 <ValidationComponent />
@@ -159,7 +186,66 @@ function AppContent() {
                 <GSTHelper />
               } 
             />
+            <Route 
+              path="/gst-reconciliation" 
+              element={
+                <GSTReconciliation />
+              } 
+            />
+            <Route 
+              path="/multiple-upload" 
+              element={
+                <MultipleFileUpload
+                  onComplete={(results) => {
+                    console.log('Multiple upload completed:', results);
+                  }}
+                />
+              } 
+            />
+            <Route 
+              path="/history" 
+              element={
+                <HistoryList 
+                  onClose={() => {
+                    setShowHistoryModal(false);
+                    navigate('/');
+                  }}
+                />
+              } 
+            />
           </Routes>
+
+          {/* Authentication Modal */}
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={() => {
+              setShowAuthModal(false);
+            }}
+          />
+
+          {/* History Modal */}
+          {showHistoryModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="bg-white rounded-lg p-4 max-w-6xl w-full mx-4 max-h-[90vh] overflow-auto">
+                <HistoryList 
+                  onClose={() => {
+                    setShowHistoryModal(false);
+                    navigate('/');
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Delete Account Modal */}
+          <DeleteAccountModal
+            isOpen={showDeleteAccountModal}
+            onClose={() => setShowDeleteAccountModal(false)}
+            onSuccess={() => {
+              setShowDeleteAccountModal(false);
+            }}
+          />
         </div>
       </Layout>
       <Toaster

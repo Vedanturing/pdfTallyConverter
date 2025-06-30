@@ -1,0 +1,6 @@
+DATE	VOUCHERTYPENAME	AMOUNT	PARTYLEDGERNAME	NARRATION
+2024-06-20	Payment	5000.00	Cash Account	Office supplies payment
+2024-06-21	Receipt	10000.00	Customer A	Payment received from customer
+2024-06-22	Sales	8500.00	Customer B	Sales invoice #INV001
+2024-06-23	Purchase	3200.00	Supplier X	Raw materials purchase
+2024-06-24	Journal	1500.00	Bank Account	Bank charges adjustment 

@@ -96,7 +96,10 @@ const FileUploader: React.FC = () => {
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
-      'image/*': ['.png', '.jpg', '.jpeg']
+      'image/*': ['.png', '.jpg', '.jpeg'],
+      'text/xml': ['.xml'],
+      'application/xml': ['.xml'],
+      'text/plain': ['.txt']
     },
     multiple: false,
     maxSize: 10 * 1024 * 1024 // 10MB
@@ -142,7 +145,7 @@ const FileUploader: React.FC = () => {
                   : 'Drag & drop your file here, or click to browse'}
               </p>
               <p className="text-sm text-gray-500">
-                Supported formats: PDF, PNG, JPG, JPEG (max. 10MB)
+                Supported formats: PDF, PNG, JPG, JPEG, XML, TXT (max. 10MB)
               </p>
             </div>
           )}

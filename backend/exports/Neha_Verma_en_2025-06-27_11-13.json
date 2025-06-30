@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "exported_at": "2025-06-27T11:13:19.782589",
+    "language": "en",
+    "original_filename": "sample_bank_statement_neha.pdf",
+    "extracted_name": "Neha Verma",
+    "data_source": "converted"
+  },
+  "headers": [
+    "Date",
+    "Description",
+    "Amount",
+    "Balance"
+  ],
+  "data": [
+    {
+      "Date": "02/01/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/02/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/04/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/05/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/06/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/08/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/10/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/13/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/14/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    },
+    {
+      "Date": "02/15/2025",
+      "Description": "",
+      "Amount": "",
+      "Balance": ""
+    }
+  ]
+}

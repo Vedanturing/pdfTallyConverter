@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <VOUCHER>
+          <DATE>2025-04-01</DATE>
+          <DESCRIPTION>ATM Withdrawal</DESCRIPTION>
+          <AMOUNT(INR)>1,338.00</AMOUNT(INR)>
+          <BALANCE>41338.0</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-04</DATE>
+          <DESCRIPTION>Online Transfer</DESCRIPTION>
+          <AMOUNT(INR)>3384.43</AMOUNT(INR)>
+          <BALANCE>40953.57</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-06</DATE>
+          <DESCRIPTION>EMI Payment</DESCRIPTION>
+          <AMOUNT(INR)>4,905.87</AMOUNT(INR)>
+          <BALANCE>45859.44</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-09</DATE>
+          <DESCRIPTION>Salary</DESCRIPTION>
+          <AMOUNT(INR)>Credit</AMOUNT(INR)>
+          <BALANCE>4117.86</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-10</DATE>
+          <DESCRIPTION>Utility Bill</DESCRIPTION>
+          <AMOUNT(INR)>3,913.89</AMOUNT(INR)>
+          <BALANCE>53891.19</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-11</DATE>
+          <DESCRIPTION>Utility Bill</DESCRIPTION>
+          <AMOUNT(INR)>5,376.63</AMOUNT(INR)>
+          <BALANCE>59267.82</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-12</DATE>
+          <DESCRIPTION>EMI Payment</DESCRIPTION>
+          <AMOUNT(INR)>4,281.47</AMOUNT(INR)>
+          <BALANCE>63549.29</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-13</DATE>
+          <DESCRIPTION>Salary Credit</DESCRIPTION>
+          <AMOUNT(INR)>523.05</AMOUNT(INR)>
+          <BALANCE>64072.34</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-15</DATE>
+          <DESCRIPTION>Utility Bill</DESCRIPTION>
+          <AMOUNT(INR)>5,356.32</AMOUNT(INR)>
+          <BALANCE>69428.66</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-16</DATE>
+          <DESCRIPTION>Salary</DESCRIPTION>
+          <AMOUNT(INR)>Credit</AMOUNT(INR)>
+          <BALANCE>3520.76</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-17</DATE>
+          <DESCRIPTION>Salary Credit</DESCRIPTION>
+          <AMOUNT(INR)>1,948.19</AMOUNT(INR)>
+          <BALANCE>74897.61</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-04-20</DATE>
+          <DESCRIPTION>EMI Payment</DESCRIPTION>
+          <AMOUNT(INR)>2,527.27</AMOUNT(INR)>
+          <BALANCE>77424.88</BALANCE>
+        </VOUCHER>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

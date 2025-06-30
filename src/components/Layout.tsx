@@ -5,36 +5,54 @@ import { Button } from './ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import {
   DocumentTextIcon,
+  DocumentArrowUpIcon,
   DocumentMagnifyingGlassIcon,
   ArrowPathIcon,
   CheckCircleIcon,
   ArrowDownTrayIcon,
   BanknotesIcon,
   CalculatorIcon,
+  ScaleIcon,
 } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
 import SettingsModal from './Settings';
+import { useAuthStore } from '../store/authStore';
+import { UserCircleIcon, ClockIcon, ArrowRightStartOnRectangleIcon, CogIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const getNavigation = (t: any) => [
   { name: t('navigation.upload'), href: '/', icon: DocumentTextIcon },
+  { name: 'Multiple Upload', href: '/multiple-upload', icon: DocumentArrowUpIcon },
   { name: t('navigation.preview'), href: '/preview', icon: DocumentMagnifyingGlassIcon },
   { name: t('navigation.convert'), href: '/convert', icon: ArrowPathIcon },
   { name: t('navigation.validate'), href: '/validate', icon: CheckCircleIcon },
   { name: t('navigation.export'), href: '/export', icon: ArrowDownTrayIcon },
   { name: t('navigation.bankMatcher'), href: '/bank-matcher', icon: BanknotesIcon },
   { name: t('navigation.gstHelper'), href: '/gst-helper', icon: CalculatorIcon },
+  { name: 'GST Reconciliation', href: '/gst-reconciliation', icon: ScaleIcon },
 ];
 
 interface LayoutProps {
   children: React.ReactNode;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  onShowAuth?: () => void;
+  onShowHistory?: () => void;
+  onShowDeleteAccount?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }) => {
+export const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  theme, 
+  onToggleTheme,
+  onShowAuth,
+  onShowHistory,
+  onShowDeleteAccount
+}) => {
   const location = useLocation();
   const { t } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { user, isAuthenticated, logout } = useAuthStore();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -81,6 +99,87 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme }
               >
                 <HelpCircle className="h-5 w-5" />
               </motion.button>
+              
+              {/* Authentication Section */}
+              {isAuthenticated ? (
+                <div className="relative">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-2 px-3 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <UserCircleIcon className="h-5 w-5" />
+                    <span className="text-sm hidden md:block">{user?.name}</span>
+                  </motion.button>
+                  
+                  {/* User Menu Dropdown */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                      <div className="py-1">
+                        <div className="px-3 py-2 text-sm text-gray-500 border-b">
+                          {user?.email}
+                        </div>
+                        {onShowHistory && (
+                          <button
+                            onClick={() => {
+                              onShowHistory();
+                              setShowUserMenu(false);
+                            }}
+                            className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            <ClockIcon className="h-4 w-4 mr-2" />
+                            My History
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setIsSettingsOpen(true);
+                            setShowUserMenu(false);
+                          }}
+                          className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <CogIcon className="h-4 w-4 mr-2" />
+                          Account Settings
+                        </button>
+                        {onShowDeleteAccount && (
+                          <button
+                            onClick={() => {
+                              onShowDeleteAccount();
+                              setShowUserMenu(false);
+                            }}
+                            className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900"
+                          >
+                            <TrashIcon className="h-4 w-4 mr-2" />
+                            Delete Account
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            logout();
+                            setShowUserMenu(false);
+                          }}
+                          className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <ArrowRightStartOnRectangleIcon className="h-4 w-4 mr-2" />
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                onShowAuth && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={onShowAuth}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90"
+                  >
+                    Sign In
+                  </motion.button>
+                )
+              )}
             </nav>
           </div>
         </div>

@@ -1,0 +1,11 @@
+date,description,Amount (INR),balance
+2025-02-01,Bill Payment,"1,877.52",21877.52
+2025-02-02,UPI Transfer,"3,299.20",25176.72
+2025-02-04,NEFT Transfer,849.75,26026.47
+2025-02-05,Mobile Recharge,"-1,989.10",24037.37
+2025-02-06,UPI Transfer,"1,882.44",25919.81
+2025-02-08,UPI Transfer,"2,965.52",28885.33
+2025-02-10,UPI Transfer,"1,458.53",30343.86
+2025-02-13,NEFT Transfer,"-1,908.24",28435.62
+2025-02-14,Cash Deposit,"7,563.53",35999.15
+2025-02-15,POS Purchase,"3,623.08",39622.23

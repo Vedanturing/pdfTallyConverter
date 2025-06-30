@@ -8,39 +8,29 @@ def validate_numeric(value: str) -> Dict[str, Any]:
     if not value:
         return {"valid": False, "error": "Missing value", "severity": "critical", "fix": None}
     
-    # Remove currency symbols and commas
-    cleaned = re.sub(r'[₹,]', '', str(value))
-    
-    # Check for common OCR errors
-    ocr_fixes = {
-        'O': '0',
-        'l': '1',
-        'I': '1',
-        'S': '5',
-        'B': '8',
-    }
-    
-    original = cleaned
-    for wrong, correct in ocr_fixes.items():
-        cleaned = cleaned.replace(wrong, correct)
-    
+    # Use improved amount parsing
     try:
-        num = float(cleaned)
-        if original != cleaned:
+        parsed_value = parse_amount_value(value)
+        
+        # Check if parsing changed the original value significantly
+        original_str = str(value).strip()
+        if original_str and original_str != str(parsed_value):
             return {
                 "valid": True,
-                "warning": "Possible OCR error",
-                "severity": "warning",
-                "fix": cleaned,
-                "original": original
+                "warning": "Value formatting corrected",
+                "severity": "info",
+                "fix": parsed_value,
+                "original": original_str
             }
-        return {"valid": True}
-    except ValueError:
+        
+        return {"valid": True, "value": parsed_value}
+        
+    except Exception as e:
         return {
             "valid": False,
-            "error": "Invalid numeric value",
+            "error": f"Invalid numeric value: {str(e)}",
             "severity": "critical",
-            "fix": cleaned if original != cleaned else None
+            "fix": None
         }
 
 def validate_date(value: Any) -> Dict[str, Any]:
@@ -108,8 +98,21 @@ def validate_voucher_no(value: str) -> Dict[str, Any]:
     }
 
 def validate_table_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Validate entire table data"""
+    """Smart validation of table data based on detected columns"""
+    if not data:
+        return []
+    
     validation_results = []
+    
+    # Get smart column mapping
+    headers = list(data[0].keys())
+    column_mapping = smart_column_mapping(headers)
+    
+    # Detect amount columns
+    amount_columns = detect_amount_columns(data)
+    
+    # Find date columns
+    date_columns = [col for col in headers if 'date' in col.lower() or 'dt' in col.lower()]
     
     for row_idx, row in enumerate(data):
         row_result = {
@@ -117,56 +120,63 @@ def validate_table_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "issues": []
         }
         
-        # Validate date
-        date_validation = validate_date(str(row.get("DATE", "")))
-        if not date_validation.get("valid"):
-            row_result["issues"].append({
-                "column": "DATE",
-                "type": date_validation.get("error"),
-                "severity": date_validation.get("severity"),
-                "fix": date_validation.get("fix")
-            })
+        # Validate date columns (only if they exist)
+        for date_col in date_columns:
+            if date_col in row:
+                date_validation = validate_date(row.get(date_col, ""))
+                if not date_validation.get("valid"):
+                    row_result["issues"].append({
+                        "column": date_col,
+                        "type": date_validation.get("error"),
+                        "severity": date_validation.get("severity"),
+                        "fix": date_validation.get("fix")
+                    })
         
-        # Validate amount
-        amount_validation = validate_numeric(str(row.get("AMOUNT", "")))
-        if not amount_validation.get("valid"):
-            row_result["issues"].append({
-                "column": "AMOUNT",
-                "type": amount_validation.get("error"),
-                "severity": amount_validation.get("severity"),
-                "fix": amount_validation.get("fix")
-            })
-        elif amount_validation.get("warning"):
-            row_result["issues"].append({
-                "column": "AMOUNT",
-                "type": amount_validation.get("warning"),
-                "severity": "warning",
-                "fix": amount_validation.get("fix"),
-                "original": amount_validation.get("original")
-            })
+        # Validate amount columns (only if they exist)
+        for amount_col in amount_columns:
+            if amount_col in row:
+                amount_validation = validate_numeric(str(row.get(amount_col, "")))
+                if not amount_validation.get("valid"):
+                    row_result["issues"].append({
+                        "column": amount_col,
+                        "type": amount_validation.get("error"),
+                        "severity": amount_validation.get("severity"),
+                        "fix": amount_validation.get("fix")
+                    })
+                elif amount_validation.get("warning"):
+                    row_result["issues"].append({
+                        "column": amount_col,
+                        "type": amount_validation.get("warning"),
+                        "severity": "info",
+                        "fix": amount_validation.get("fix"),
+                        "original": amount_validation.get("original")
+                    })
+                
+                # Check for negative amounts
+                try:
+                    amount = parse_amount_value(row.get(amount_col, ""))
+                    if amount < 0:
+                        row_result["issues"].append({
+                            "column": amount_col,
+                            "type": "Negative amount",
+                            "severity": "warning",
+                            "fix": None
+                        })
+                except:
+                    pass
         
-        # Validate voucher number
-        voucher_validation = validate_voucher_no(str(row.get("VOUCHER NO", "")))
-        if not voucher_validation.get("valid"):
-            row_result["issues"].append({
-                "column": "VOUCHER NO",
-                "type": voucher_validation.get("error"),
-                "severity": voucher_validation.get("severity"),
-                "fix": voucher_validation.get("fix")
-            })
-        
-        # Check for negative amounts
-        try:
-            amount = float(str(row.get("AMOUNT", "0")).replace(",", ""))
-            if amount < 0:
-                row_result["issues"].append({
-                    "column": "AMOUNT",
-                    "type": "Negative amount",
-                    "severity": "warning",
-                    "fix": None
-                })
-        except ValueError:
-            pass
+        # Only validate voucher numbers if they exist
+        voucher_columns = [col for col in headers if any(vch in col.lower() for vch in ['voucher', 'vch', 'ref', 'reference'])]
+        for voucher_col in voucher_columns:
+            if voucher_col in row:
+                voucher_validation = validate_voucher_no(str(row.get(voucher_col, "")))
+                if not voucher_validation.get("valid"):
+                    row_result["issues"].append({
+                        "column": voucher_col,
+                        "type": voucher_validation.get("error"),
+                        "severity": voucher_validation.get("severity"),
+                        "fix": voucher_validation.get("fix")
+                    })
         
         if row_result["issues"]:
             validation_results.append(row_result)
@@ -267,7 +277,7 @@ def get_validation_summary(validation_results: List[Dict[str, Any]]) -> Dict[str
 class ValidationError(Exception):
     pass
 
-def validate_date(date_str: str) -> bool:
+def validate_date_simple(date_str: str) -> bool:
     """Validate if a string is a valid date."""
     try:
         datetime.strptime(date_str, "%Y-%m-%d")
@@ -275,7 +285,7 @@ def validate_date(date_str: str) -> bool:
     except ValueError:
         return False
 
-def validate_amount(amount: Any) -> bool:
+def validate_amount_simple(amount: Any) -> bool:
     """Validate if a value is a valid numeric amount."""
     try:
         float(str(amount).replace(',', ''))
@@ -296,41 +306,53 @@ def validate_tax_rate(rate: Any) -> bool:
     except (ValueError, TypeError):
         return False
 
-def validate_financial_data(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
+def validate_financial_data(entries: List[Dict[str, Any]], strict: bool = False) -> Dict[str, Any]:
     """
     Validate financial entries against predefined rules.
     Returns a dictionary with validation results and errors.
+    
+    Args:
+        entries: List of financial entries to validate
+        strict: If True, enforces all required fields. If False, only validates present fields.
     """
     errors = []
+    error_count = 0
     
     for idx, entry in enumerate(entries):
         row_errors = []
         
-        # Required fields
-        required_fields = ['date', 'description', 'amount']
-        for field in required_fields:
-            if not entry.get(field):
-                row_errors.append(f"Missing required field: {field}")
+        # In strict mode, check required fields
+        if strict:
+            required_fields = ['date', 'description', 'amount']
+            for field in required_fields:
+                if not entry.get(field):
+                    row_errors.append(f"Missing required field: {field}")
         
-        # Date validation
-        if entry.get('date') and not validate_date(entry['date']):
-            row_errors.append("Invalid date format (should be YYYY-MM-DD)")
+        # Date validation (only if present)
+        if entry.get('date'):
+            if not validate_date_simple(entry['date']):
+                row_errors.append("Invalid date format")
+                error_count += 1
         
-        # Amount validation
-        if entry.get('amount') and not validate_amount(entry['amount']):
-            row_errors.append("Invalid amount format")
-        
-        # Balance validation
-        if entry.get('balance') and not validate_amount(entry['balance']):
-            row_errors.append("Invalid balance format")
+        # Amount validation (only if present)
+        amount_fields = ['amount', 'debit', 'credit', 'balance']
+        for field in amount_fields:
+            if entry.get(field):
+                if not validate_amount_simple(entry[field]):
+                    row_errors.append(f"Invalid {field} format")
+                    error_count += 1
         
         # GSTIN validation (if present)
-        if entry.get('gstin') and not validate_gstin(entry['gstin']):
-            row_errors.append("Invalid GSTIN format")
+        if entry.get('gstin'):
+            if not validate_gstin(entry['gstin']):
+                row_errors.append("Invalid GSTIN format")
+                error_count += 1
         
         # Tax rate validation (if present)
-        if entry.get('taxRate') and not validate_tax_rate(entry['taxRate']):
-            row_errors.append("Invalid tax rate (should be between 0-100)")
+        if entry.get('taxRate'):
+            if not validate_tax_rate(entry['taxRate']):
+                row_errors.append("Invalid tax rate (should be between 0-100)")
+                error_count += 1
         
         if row_errors:
             errors.append({
@@ -339,100 +361,153 @@ def validate_financial_data(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
             })
     
     return {
-        "is_valid": len(errors) == 0,
+        "is_valid": error_count == 0,
+        "error_count": error_count,
         "errors": errors
     }
 
-def validate_table_data(data: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Validate table data for structure and basic content.
-    Returns a dictionary with validation results and errors.
-    """
-    errors = []
-    warnings = []
+def smart_column_mapping(headers: List[str]) -> Dict[str, str]:
+    """Smart mapping of column headers to standard names"""
+    column_mapping = {}
     
-    if not data:
-        errors.append("No data provided")
-        return {
-            "is_valid": False,
-            "errors": errors,
-            "warnings": warnings
-        }
-    
-    # Check for consistent columns
-    columns = set(data[0].keys())
-    for idx, row in enumerate(data[1:], 1):
-        row_columns = set(row.keys())
-        if row_columns != columns:
-            missing = columns - row_columns
-            extra = row_columns - columns
-            if missing:
-                errors.append(f"Row {idx + 1} is missing columns: {', '.join(missing)}")
-            if extra:
-                errors.append(f"Row {idx + 1} has extra columns: {', '.join(extra)}")
-    
-    # Validate required columns
-    required_columns = {'date', 'description', 'amount'}
-    missing_required = required_columns - columns
-    if missing_required:
-        errors.append(f"Missing required columns: {', '.join(missing_required)}")
-    
-    return {
-        "is_valid": len(errors) == 0,
-        "errors": errors,
-        "warnings": warnings
+    # Define mapping patterns for different column types
+    patterns = {
+        'amount': [
+            'amount', 'amt', 'transaction_amount', 'trans_amount', 'txn_amount',
+            'credit_amount', 'debit_amount', 'withdrawal', 'deposit', 
+            'rupees', 'rs', 'inr', 'total', 'sum', 'value', 'money'
+        ],
+        'date': [
+            'date', 'dt', 'transaction_date', 'trans_date', 'txn_date',
+            'value_date', 'posting_date', 'entry_date', 'tran_date'
+        ],
+        'description': [
+            'description', 'desc', 'narration', 'particulars', 'details',
+            'remarks', 'reference', 'memo', 'note', 'transaction_desc'
+        ],
+        'voucher_no': [
+            'voucher_no', 'voucher', 'vch_no', 'ref_no', 'reference_no',
+            'transaction_id', 'txn_id', 'receipt_no', 'invoice_no'
+        ],
+        'balance': [
+            'balance', 'running_balance', 'closing_balance', 'available_balance',
+            'current_balance', 'acc_balance'
+        ],
+        'debit': [
+            'debit', 'dr', 'withdrawal', 'debit_amount', 'dr_amount'
+        ],
+        'credit': [
+            'credit', 'cr', 'deposit', 'credit_amount', 'cr_amount'
+        ]
     }
+    
+    # Create reverse mapping for case-insensitive lookup
+    header_mapping = {}
+    for header in headers:
+        header_lower = header.lower().strip().replace(' ', '_').replace('-', '_')
+        
+        # Find best match
+        for standard_name, variations in patterns.items():
+            for variation in variations:
+                if variation in header_lower or header_lower == variation:
+                    header_mapping[header] = standard_name.upper()
+                    break
+            if header in header_mapping:
+                break
+        
+        # If no specific mapping found, use cleaned header
+        if header not in header_mapping:
+            header_mapping[header] = header.upper().replace(' ', '_')
+    
+    return header_mapping
 
-def get_validation_summary(data: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Generate a summary of validation checks and potential issues.
-    """
-    summary = {
-        "total_rows": len(data),
-        "empty_fields": [],
-        "numeric_issues": [],
-        "date_issues": [],
-        "duplicate_entries": []
-    }
+def parse_amount_value(value: Any) -> float:
+    """Enhanced amount parsing with better currency symbol handling"""
+    if pd.isna(value) or value is None or value == '':
+        return 0.0
     
-    seen_entries = set()
+    # Convert to string first
+    str_value = str(value).strip()
     
-    for idx, row in enumerate(data):
-        # Check for empty fields
-        empty_fields = [k for k, v in row.items() if not str(v).strip()]
-        if empty_fields:
-            summary["empty_fields"].append({
-                "row": idx + 1,
-                "fields": empty_fields
-            })
-        
-        # Check numeric fields
-        for field in ['amount', 'balance']:
-            if field in row and not validate_amount(row[field]):
-                summary["numeric_issues"].append({
-                    "row": idx + 1,
-                    "field": field,
-                    "value": row[field]
-                })
-        
-        # Check date fields
-        if 'date' in row and not validate_date(row['date']):
-            summary["date_issues"].append({
-                "row": idx + 1,
-                "value": row['date']
-            })
-        
-        # Check for duplicates
-        entry_key = f"{row.get('date')}_{row.get('amount')}_{row.get('description')}"
-        if entry_key in seen_entries:
-            summary["duplicate_entries"].append({
-                "row": idx + 1,
-                "entry": {
-                    "date": row.get('date'),
-                    "amount": row.get('amount'),
-                    "description": row.get('description')
-                }
-            })
-        seen_entries.add(entry_key)
+    if not str_value:
+        return 0.0
     
-    return summary 
+    # Remove common currency symbols and formatting
+    cleaned = str_value
+    
+    # Remove currency symbols
+    currency_symbols = ['₹', '$', '€', '£', '¥', 'Rs.', 'Rs', 'INR', 'USD']
+    for symbol in currency_symbols:
+        cleaned = cleaned.replace(symbol, '')
+    
+    # Handle brackets for negative values (accounting format)
+    is_negative = False
+    if cleaned.startswith('(') and cleaned.endswith(')'):
+        is_negative = True
+        cleaned = cleaned[1:-1]
+    elif cleaned.startswith('-'):
+        is_negative = True
+    
+    # Remove thousand separators (commas) but preserve decimal points
+    cleaned = cleaned.replace(',', '')
+    
+    # Remove extra spaces and other formatting
+    cleaned = cleaned.strip()
+    
+    # Handle empty or dash values
+    if not cleaned or cleaned == '-' or cleaned.lower() == 'nil':
+        return 0.0
+    
+    try:
+        # Try to convert to float
+        result = float(cleaned)
+        return -result if is_negative else result
+    except ValueError:
+        # If direct conversion fails, try to extract numeric part
+        import re
+        numeric_match = re.search(r'-?\d+\.?\d*', cleaned)
+        if numeric_match:
+            result = float(numeric_match.group())
+            return -result if is_negative else result
+        return 0.0
+
+def detect_amount_columns(data: List[Dict[str, Any]]) -> List[str]:
+    """Detect which columns likely contain amount values"""
+    if not data:
+        return []
+    
+    amount_columns = []
+    headers = list(data[0].keys()) if data else []
+    
+    for header in headers:
+        header_lower = header.lower()
+        
+        # Check if header name suggests it's an amount column
+        amount_keywords = [
+            'amount', 'amt', 'balance', 'total', 'sum', 'value', 'money',
+            'debit', 'credit', 'withdrawal', 'deposit', 'rupees', 'rs', 'inr'
+        ]
+        
+        if any(keyword in header_lower for keyword in amount_keywords):
+            amount_columns.append(header)
+            continue
+        
+        # Check if values in this column are predominantly numeric
+        numeric_count = 0
+        total_count = 0
+        
+        for row in data[:10]:  # Check first 10 rows
+            value = row.get(header)
+            if value is not None and str(value).strip():
+                total_count += 1
+                try:
+                    parse_amount_value(value)
+                    numeric_count += 1
+                except:
+                    pass
+        
+        # If more than 80% of values are numeric, consider it an amount column
+        if total_count > 0 and (numeric_count / total_count) > 0.8:
+            amount_columns.append(header)
+    
+    return amount_columns 

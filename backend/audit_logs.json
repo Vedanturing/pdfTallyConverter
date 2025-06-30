@@ -1450,5 +1450,1733 @@
       "client_host": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
     }
+  },
+  {
+    "timestamp": "2025-06-24T07:06:25.938015",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000232,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T07:06:25.954043",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.004524,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T07:06:35.392145",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/cdd9f69d-3948-4c85-bdb0-53aae4725f11/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.034561,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:31:52.889694",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.003236,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:40:34.121997",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000691,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:40:34.143860",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.007826,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:41:07.186335",
+    "action_type": "api_request",
+    "summary": "GET /convert",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000296,
+      "status_code": 405,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:41:14.523158",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.014741,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:41:20.154575",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/44221de7-681b-4166-a4ab-68fbaf031a18/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.034353,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:47:54.170358",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.001961,
+      "status_code": 422,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-IN) WindowsPowerShell/5.1.22621.4391"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:49:23.391986",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.001074,
+      "status_code": 422,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T09:54:18.694110",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.007324,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:46:42.745422",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.001103,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:46:42.771627",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.007424,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:47:08.827281",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/c288906f-56d9-4c7d-9ba1-6c7ee30a010e/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.047399,
+      "status_code": 500,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:47:09.892854",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/c288906f-56d9-4c7d-9ba1-6c7ee30a010e/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.045205,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:59:09.177204",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000561,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:59:09.207983",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.005353,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:59:46.883713",
+    "action_type": "api_request",
+    "summary": "OPTIONS /api/convert/5cd8f65f-19b2-438d-8b13-56eb8107db37/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000612,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:59:46.934445",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/5cd8f65f-19b2-438d-8b13-56eb8107db37/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.031372,
+      "status_code": 500,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T10:59:48.000801",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/5cd8f65f-19b2-438d-8b13-56eb8107db37/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.042482,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:00:02.684395",
+    "action_type": "api_request",
+    "summary": "OPTIONS /api/convert/5cd8f65f-19b2-438d-8b13-56eb8107db37/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000382,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:00:02.734233",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/5cd8f65f-19b2-438d-8b13-56eb8107db37/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.029853,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:01:28.097378",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.013132,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:01:56.819749",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.011897,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:01:58.470477",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.008758,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:03:25.174767",
+    "action_type": "api_request",
+    "summary": "OPTIONS /api/convert/b2fb403f-5a3f-4863-b2fe-f013557e0ef1/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000219,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:03:25.229111",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/b2fb403f-5a3f-4863-b2fe-f013557e0ef1/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.037518,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:04:04.542200",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/b2fb403f-5a3f-4863-b2fe-f013557e0ef1/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.04644,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:04:24.103916",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.010276,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:04:28.504828",
+    "action_type": "api_request",
+    "summary": "OPTIONS /api/convert/f188cd40-7f5c-4c01-8b23-587f721d0f1a/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000219,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:04:28.555009",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/f188cd40-7f5c-4c01-8b23-587f721d0f1a/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.032914,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:04:30.933760",
+    "action_type": "api_request",
+    "summary": "OPTIONS /api/convert/f188cd40-7f5c-4c01-8b23-587f721d0f1a/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000441,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:04:31.008857",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/f188cd40-7f5c-4c01-8b23-587f721d0f1a/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.059099,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:52:48.803984",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.012849,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:52:48.858561",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.002237,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:53:04.437238",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/2e7524f6-ab19-404b-a0c3-1b410910900b/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.034493,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:53:04.468898",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/2e7524f6-ab19-404b-a0c3-1b410910900b/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.015574,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:53:40.457545",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/2e7524f6-ab19-404b-a0c3-1b410910900b/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.028358,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-24T11:53:40.480230",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/2e7524f6-ab19-404b-a0c3-1b410910900b/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.008601,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T06:36:09.444683",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000311,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T06:36:09.458347",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.004597,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T06:37:59.118573",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.026666,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T06:39:13.268507",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.008799,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T06:40:30.629184",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/87bee122-d7ef-42dc-81c0-79a409317973/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.032679,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T07:19:09.230291",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/f188cd40-7f5c-4c01-8b23-587f721d0f1a",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.001934,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T07:24:54.224596",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000837,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T07:24:54.245973",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.009291,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T07:25:24.351393",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/e2eb1706-9821-4c2d-8830-ef32c4e54c74/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.024753,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T07:26:05.966575",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/e2eb1706-9821-4c2d-8830-ef32c4e54c74/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.084141,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T07:26:51.532163",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/e2eb1706-9821-4c2d-8830-ef32c4e54c74/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.02752,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T07:33:36.551784",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.005977,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T08:15:32.149666",
+    "action_type": "api_request",
+    "summary": "GET /convert",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000496,
+      "status_code": 405,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T08:31:49.917339",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000605,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T08:31:49.950842",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.018788,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T08:32:16.072154",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/179d047b-5ef8-4f1d-b34f-a6fd9520d618/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.042006,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T08:32:47.389880",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.007631,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-25T08:33:18.569439",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.019464,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:25:32.688833",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.001109,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:25:32.740490",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.03041,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:26:09.468895",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/e66870ae-0d26-423e-b41e-6fec005a5f3d/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.035911,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:33:47.851839",
+    "action_type": "api_request",
+    "summary": "OPTIONS /api/v1/documents/upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000589,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:33:47.877124",
+    "action_type": "api_request",
+    "summary": "POST /api/v1/documents/upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000458,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:34:00.653496",
+    "action_type": "api_request",
+    "summary": "POST /api/v1/documents/upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000476,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:35:22.758386",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.02903,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:37:10.085006",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000384,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:37:10.102004",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.003086,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:37:45.314938",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/c4f0c447-392f-4641-9bb1-69a8a8c19b49/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.024292,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:39:27.573699",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.004161,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:44:20.705643",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.017596,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T04:44:32.101144",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/847dbb01-431d-4148-894a-820b674afa0b/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.020384,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T05:10:26.281160",
+    "action_type": "api_request",
+    "summary": "GET /convert",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000442,
+      "status_code": 405,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T05:18:36.953578",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000375,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T05:18:36.982648",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.017345,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T05:23:35.046529",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/20573aaf-0229-4bbe-91f9-576ed5eb9a65/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.033194,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T05:27:38.664042",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.010125,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T05:29:18.590617",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/517e2a22-6c54-4ff1-8392-a510a7e2e666/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.030406,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T06:21:20.063534",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000719,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T06:21:20.084774",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.008866,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T06:22:21.639987",
+    "action_type": "api_request",
+    "summary": "GET /convert",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000583,
+      "status_code": 405,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T06:22:31.007038",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.01191,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T06:36:20.790028",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000537,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T06:36:20.810766",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.006905,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T06:36:43.005620",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.010646,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T07:16:44.608039",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000357,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T07:16:44.637870",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.020387,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T07:16:54.033325",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/779abd16-7b60-45fe-b6e2-ac79ffcc4a3c",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.009132,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T07:17:21.753749",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/779abd16-7b60-45fe-b6e2-ac79ffcc4a3c/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 27.699742,
+      "status_code": 500,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T07:32:26.172875",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/test_file_123/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000671,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T07:32:28.237135",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/test_file_123/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.00282,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T07:32:30.314317",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/test_file_123/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.002362,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:06:04.200403",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000622,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:06:04.220931",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.005019,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:06:16.297238",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/c825c438-430f-4bb0-a075-52ed35f952a6",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.008665,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:06:16.322934",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/c825c438-430f-4bb0-a075-52ed35f952a6/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.003149,
+      "status_code": 500,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:07:51.172518",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/c825c438-430f-4bb0-a075-52ed35f952a6",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.002111,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:07:51.185601",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/c825c438-430f-4bb0-a075-52ed35f952a6/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.002261,
+      "status_code": 500,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:12:53.811275",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/20573aaf-0229-4bbe-91f9-576ed5eb9a65/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.006102,
+      "status_code": 500,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:12:55.940710",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/20573aaf-0229-4bbe-91f9-576ed5eb9a65/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.068438,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T08:12:58.012175",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/20573aaf-0229-4bbe-91f9-576ed5eb9a65/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.018886,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-28T05:51:18.644239",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000658,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-28T05:51:18.683629",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.027494,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-28T05:51:37.174132",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.017704,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T04:40:25.896540",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000674,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T04:40:25.940850",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.029434,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T04:56:36.340979",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000564,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T04:56:36.371313",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.01052,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:24:07.923992",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.006038,
+      "status_code": 422,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:25:23.100459",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.007241,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:26:33.272046",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.001114,
+      "status_code": 422,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:26:45.333244",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.009004,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:30:47.042404",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000569,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:30:47.060945",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.004487,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:39:30.969806",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.009669,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:41:16.018604",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/78556e4e-71bf-4174-8795-76fd372fb274",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000405,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:41:16.031925",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/78556e4e-71bf-4174-8795-76fd372fb274/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000516,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:41:32.738830",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/78556e4e-71bf-4174-8795-76fd372fb274",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000609,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:41:32.765156",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/78556e4e-71bf-4174-8795-76fd372fb274/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000438,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:41:34.689794",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/78556e4e-71bf-4174-8795-76fd372fb274",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.00057,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:41:34.720336",
+    "action_type": "api_request",
+    "summary": "GET /api/convert/78556e4e-71bf-4174-8795-76fd372fb274/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000447,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:47:54.766300",
+    "action_type": "api_request",
+    "summary": "GET /api/download/test-file-id/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000465,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:53:08.724975",
+    "action_type": "api_request",
+    "summary": "GET /api/download/1f7a5707-f20d-4790-8477-814a0d73c557/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.058261,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:53:37.446193",
+    "action_type": "api_request",
+    "summary": "GET /api/download/1f7a5707-f20d-4790-8477-814a0d73c557/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.030048,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:53:39.520777",
+    "action_type": "api_request",
+    "summary": "GET /api/download/1f7a5707-f20d-4790-8477-814a0d73c557/json",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.002274,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:53:41.605739",
+    "action_type": "api_request",
+    "summary": "GET /api/download/1f7a5707-f20d-4790-8477-814a0d73c557/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.014761,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:56:57.856355",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000351,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:56:57.897454",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.028296,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:57:14.719199",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.012068,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:57:42.843585",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/acccfffb-4b8a-495f-a5c6-7f6dff707ee0",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000597,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:57:42.931976",
+    "action_type": "api_request",
+    "summary": "GET /api/download/acccfffb-4b8a-495f-a5c6-7f6dff707ee0/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.061125,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:58:15.158946",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/acccfffb-4b8a-495f-a5c6-7f6dff707ee0",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000759,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:58:15.231625",
+    "action_type": "api_request",
+    "summary": "GET /api/download/acccfffb-4b8a-495f-a5c6-7f6dff707ee0/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.030127,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:58:26.689192",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/acccfffb-4b8a-495f-a5c6-7f6dff707ee0",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.00055,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T05:58:26.739709",
+    "action_type": "api_request",
+    "summary": "GET /api/download/acccfffb-4b8a-495f-a5c6-7f6dff707ee0/xml",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.016179,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T07:52:23.453682",
+    "action_type": "api_request",
+    "summary": "GET /api/download/1f7a5707-f20d-4790-8477-814a0d73c557/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.008013,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T07:53:15.536253",
+    "action_type": "api_request",
+    "summary": "GET /api/download/1f7a5707-f20d-4790-8477-814a0d73c557/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.004289,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "python-requests/2.32.4"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T07:53:35.750013",
+    "action_type": "api_request",
+    "summary": "OPTIONS /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000726,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T07:53:35.782720",
+    "action_type": "api_request",
+    "summary": "POST /upload",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.008941,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T07:54:02.525648",
+    "action_type": "api_request",
+    "summary": "GET /api/filename/5fd91fbb-71a6-49ed-87e0-3f470cd47e69",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000639,
+      "status_code": 404,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T07:54:02.611193",
+    "action_type": "api_request",
+    "summary": "GET /api/download/5fd91fbb-71a6-49ed-87e0-3f470cd47e69/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.059303,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T08:01:15.594247",
+    "action_type": "api_request",
+    "summary": "GET /api/download/5fd91fbb-71a6-49ed-87e0-3f470cd47e69/xlsx",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.004407,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T08:01:34.744592",
+    "action_type": "api_request",
+    "summary": "GET /api/download/5fd91fbb-71a6-49ed-87e0-3f470cd47e69/tally",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.000794,
+      "status_code": 400,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T08:01:40.665581",
+    "action_type": "api_request",
+    "summary": "GET /api/download/5fd91fbb-71a6-49ed-87e0-3f470cd47e69/csv",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.020748,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
+  },
+  {
+    "timestamp": "2025-06-30T08:01:52.578667",
+    "action_type": "api_request",
+    "summary": "GET /api/download/5fd91fbb-71a6-49ed-87e0-3f470cd47e69/json",
+    "user_id": "anonymous",
+    "metadata": {
+      "duration": 0.002272,
+      "status_code": 200,
+      "client_host": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0"
+    }
   }
 ]

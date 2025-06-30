@@ -3,7 +3,7 @@ export interface FileMetadata {
   original_name: string;
   file_size: number;
   mime_type: string;
-  type: 'pdf' | 'image';
+  type: 'pdf' | 'image' | 'tally';
   num_pages?: number;
   width?: number;
   height?: number;

@@ -1,0 +1,149 @@
+{
+  "data": [
+    {
+      "date": "2025-02-01",
+      "description": "Bill Payment",
+      "Amount (INR)": 1877.52,
+      "balance": 21877.52,
+      "amount": "979768"
+    },
+    {
+      "date": "2025-02-02",
+      "description": "UPI Transfer",
+      "Amount (INR)": 3299.2,
+      "balance": 25176.72
+    },
+    {
+      "date": "2025-02-04",
+      "description": "NEFT Transfer",
+      "Amount (INR)": 849.75,
+      "balance": 26026.47
+    },
+    {
+      "date": "2025-02-05",
+      "description": "Mobile Recharge",
+      "Amount (INR)": -1989.1,
+      "balance": 24037.37
+    },
+    {
+      "date": "2025-02-06",
+      "description": "UPI Transfer",
+      "Amount (INR)": 1882.44,
+      "balance": 25919.81
+    },
+    {
+      "date": "2025-02-08",
+      "description": "UPI Transfer",
+      "Amount (INR)": 2965.52,
+      "balance": 28885.33
+    },
+    {
+      "date": "2025-02-10",
+      "description": "UPI Transfer",
+      "Amount (INR)": 1458.53,
+      "balance": 30343.86
+    },
+    {
+      "date": "2025-02-13",
+      "description": "NEFT Transfer",
+      "Amount (INR)": -1908.24,
+      "balance": 28435.62
+    },
+    {
+      "date": "2025-02-14",
+      "description": "Cash Deposit",
+      "Amount (INR)": 7563.53,
+      "balance": 35999.15
+    },
+    {
+      "date": "2025-02-15",
+      "description": "POS Purchase",
+      "Amount (INR)": 3623.08,
+      "balance": 39622.23
+    }
+  ],
+  "formats": [
+    "xml"
+  ],
+  "validation": {
+    "results": {
+      "is_valid": false,
+      "errors": [
+        "Missing required columns: amount"
+      ],
+      "warnings": []
+    },
+    "financial": {
+      "is_valid": false,
+      "errors": [
+        {
+          "row": 1,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 2,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 3,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 4,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 5,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 6,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 7,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 8,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 9,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        },
+        {
+          "row": 10,
+          "errors": [
+            "Missing required field: amount"
+          ]
+        }
+      ]
+    },
+    "summary": {
+      "total_rows": 10,
+      "empty_fields": [],
+      "numeric_issues": [],
+      "date_issues": [],
+      "duplicate_entries": []
+    }
+  }
+}

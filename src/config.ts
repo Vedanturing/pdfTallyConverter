@@ -2,7 +2,10 @@ export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const SUPPORTED_FILE_TYPES = {
   'application/pdf': ['.pdf'],
-  'image/*': ['.png', '.jpg', '.jpeg']
+  'image/*': ['.png', '.jpg', '.jpeg'],
+  'text/xml': ['.xml'],
+  'application/xml': ['.xml'],
+  'text/plain': ['.txt']
 };
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -19,5 +22,7 @@ export const FILE_EXTENSIONS = {
   PDF: '.pdf',
   JPEG: '.jpeg',
   JPG: '.jpg',
-  PNG: '.png'
+  PNG: '.png',
+  XML: '.xml',
+  TXT: '.txt'
 } as const;

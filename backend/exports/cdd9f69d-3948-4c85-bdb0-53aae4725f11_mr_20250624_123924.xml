@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <VOUCHER>
+          <ID>row-0</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>Bill Payment</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-1</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>UPI Transfer</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-2</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>NEFT Transfer</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-3</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>Mobile Recharge</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-4</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>UPI Transfer</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-5</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>UPI Transfer</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-6</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>UPI Transfer</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-7</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>NEFT Transfer</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-8</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>Cash Deposit</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+        <VOUCHER>
+          <ID>row-9</ID>
+          <दिनांक />
+          <VOUCHERNO />
+          <LEDGERNAME />
+          <रक्कम />
+          <NARRATION>POS Purchase</NARRATION>
+          <शिल्लक />
+        </VOUCHER>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

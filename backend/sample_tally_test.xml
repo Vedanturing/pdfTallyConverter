@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Export</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <EXPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Payment" ACTION="Create">
+            <DATE>2024-06-20</DATE>
+            <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
+            <VOUCHERDATE>20240620</VOUCHERDATE>
+            <AMOUNT>5000.00</AMOUNT>
+            <PARTYLEDGERNAME>Cash Account</PARTYLEDGERNAME>
+            <NARRATION>Office supplies payment</NARRATION>
+          </VOUCHER>
+          <VOUCHER VCHTYPE="Receipt" ACTION="Create">
+            <DATE>2024-06-21</DATE>
+            <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>
+            <VOUCHERDATE>20240621</VOUCHERDATE>
+            <AMOUNT>10000.00</AMOUNT>
+            <PARTYLEDGERNAME>Customer A</PARTYLEDGERNAME>
+            <NARRATION>Payment received from customer</NARRATION>
+          </VOUCHER>
+          <VOUCHER VCHTYPE="Sales" ACTION="Create">
+            <DATE>2024-06-22</DATE>
+            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+            <VOUCHERDATE>20240622</VOUCHERDATE>
+            <AMOUNT>8500.00</AMOUNT>
+            <PARTYLEDGERNAME>Customer B</PARTYLEDGERNAME>
+            <NARRATION>Sales invoice #INV001</NARRATION>
+          </VOUCHER>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </EXPORTDATA>
+  </BODY>
+</ENVELOPE> 

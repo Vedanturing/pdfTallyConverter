@@ -1,0 +1,114 @@
+{
+  "metadata": {
+    "file_id": "cdd9f69d-3948-4c85-bdb0-53aae4725f11",
+    "language": "mr",
+    "export_date": "2025-06-24T12:39:02.215826",
+    "data_source": "provided",
+    "localization": {
+      "date_format": "%d/%m/%Y",
+      "number_format": "IN",
+      "currency_symbol": "₹",
+      "headers": {
+        "date": "दिनांक",
+        "description": "तपशील",
+        "debit": "डेबिट",
+        "credit": "क्रेडिट",
+        "balance": "शिल्लक",
+        "reference": "संदर्भ",
+        "amount": "रक्कम"
+      }
+    }
+  },
+  "data": [
+    {
+      "id": "row-0",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "Bill Payment",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-1",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "UPI Transfer",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-2",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "NEFT Transfer",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-3",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "Mobile Recharge",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-4",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "UPI Transfer",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-5",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "UPI Transfer",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-6",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "UPI Transfer",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-7",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "NEFT Transfer",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-8",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "Cash Deposit",
+      "शिल्लक": ""
+    },
+    {
+      "id": "row-9",
+      "दिनांक": "",
+      "voucherNo": "",
+      "ledgerName": "",
+      "रक्कम": "",
+      "narration": "POS Purchase",
+      "शिल्लक": ""
+    }
+  ]
+}

@@ -20,7 +20,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import FinancialTable from './FinancialTable';
 import { initPdfWorker, cleanupPdfWorker } from '../utils/pdfjs-config';
 import { FinancialEntry } from '../types/financial';
+import logger, { logAction } from '../utils/logger';
 
+// Fallback logAction function in case import fails
+const fallbackLogAction = async (action: string, message: string, data?: any) => {
+  console.log(`[FALLBACK ACTION] ${action.toUpperCase()}: ${message}`, data);
+};
 
 interface ConversionResponse {
   rows: Record<string, any>[];
@@ -205,11 +210,14 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
   const convertFile = async (fileId: string, conversionToast?: string) => {
     setConversionLoading(true);
     try {
-      // First, try to get the data with conversion
-      const response = await axios.get(`${API_URL}/file/${fileId}?convert=true`);
+      // Call the conversion endpoint which will convert and return data in one call
+      const response = await axios.post(`${API_URL}/convert/${fileId}`, {
+        formats: ["json"],
+        return_data: true
+      });
       
-      if (response.data?.success && response.data?.data?.rows) {
-        const rows = response.data.data.rows;
+      if (response.data?.rows) {
+        const rows = response.data.rows;
         
         // Convert the data to our format
         const convertedRows = rows.map((row: any, index: number) => ({
@@ -229,25 +237,28 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
         setConvertedData(convertedRows);
         setActiveTab('table');
         
-
-        
         if (conversionToast) {
           toast.success('Document converted successfully', {
             id: conversionToast
           });
         }
       } else {
-        throw new Error('No data received from conversion');
+        throw new Error('No data could be extracted from the document. The file may not contain tabular data or may be in an unsupported format.');
       }
     } catch (error: any) {
       console.error('Error converting file:', error);
       const errorMessage = error.response?.data?.detail || error.message || 'Failed to convert file';
       
       // Log the error
-      await logAction('error', `Failed to convert file ${fileId}`, {
-        error: errorMessage,
-        fileId
-      });
+      try {
+        const logFn = typeof logAction === 'function' ? logAction : fallbackLogAction;
+        await logFn('error', `Failed to convert file ${fileId}`, {
+          error: errorMessage,
+          fileId
+        });
+      } catch (logError) {
+        console.error('Failed to log action:', logError);
+      }
       
       if (conversionToast) {
         toast.error(errorMessage, {
@@ -306,10 +317,11 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
       setIsFirstConvert(false);
       setActiveTab('table');
     } else {
-      navigate('/convert', { 
+      // Navigate with fileId as URL parameter and data as state
+      navigate(`/convert/${selectedFile}`, { 
         state: { 
-          fileId: selectedFile,
-          data: convertedData 
+          data: convertedData,
+          fromPreview: true
         }
       });
     }
@@ -498,11 +510,10 @@ const ViewComponent: React.FC<ViewComponentProps> = ({ onNext, onBack }) => {
           </div>
           <button
             onClick={() => {
-              // Use cached data for fast navigation
+              // Use cached data for fast navigation with URL parameter
               const cachedData = convertedData.length > 0 ? convertedData : [];
-              navigate('/convert', {
+              navigate(`/convert/${selectedFile}`, {
                 state: {
-                  fileId: selectedFile,
                   data: cachedData,
                   fromPreview: true,
                   skipProcessing: true

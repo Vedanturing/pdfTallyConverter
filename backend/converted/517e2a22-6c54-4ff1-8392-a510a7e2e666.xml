@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <VOUCHER>
+          <DATE>2025-02-01</DATE>
+          <DESCRIPTION>Bill Payment</DESCRIPTION>
+          <AMOUNT(INR)>1,877.52</AMOUNT(INR)>
+          <BALANCE>21877.52</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-02</DATE>
+          <DESCRIPTION>UPI Transfer</DESCRIPTION>
+          <AMOUNT(INR)>3,299.20</AMOUNT(INR)>
+          <BALANCE>25176.72</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-04</DATE>
+          <DESCRIPTION>NEFT Transfer</DESCRIPTION>
+          <AMOUNT(INR)>849.75</AMOUNT(INR)>
+          <BALANCE>26026.47</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-05</DATE>
+          <DESCRIPTION>Mobile Recharge</DESCRIPTION>
+          <AMOUNT(INR)>-1,989.10</AMOUNT(INR)>
+          <BALANCE>24037.37</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-06</DATE>
+          <DESCRIPTION>UPI Transfer</DESCRIPTION>
+          <AMOUNT(INR)>1,882.44</AMOUNT(INR)>
+          <BALANCE>25919.81</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-08</DATE>
+          <DESCRIPTION>UPI Transfer</DESCRIPTION>
+          <AMOUNT(INR)>2,965.52</AMOUNT(INR)>
+          <BALANCE>28885.33</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-10</DATE>
+          <DESCRIPTION>UPI Transfer</DESCRIPTION>
+          <AMOUNT(INR)>1,458.53</AMOUNT(INR)>
+          <BALANCE>30343.86</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-13</DATE>
+          <DESCRIPTION>NEFT Transfer</DESCRIPTION>
+          <AMOUNT(INR)>-1,908.24</AMOUNT(INR)>
+          <BALANCE>28435.62</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-14</DATE>
+          <DESCRIPTION>Cash Deposit</DESCRIPTION>
+          <AMOUNT(INR)>7,563.53</AMOUNT(INR)>
+          <BALANCE>35999.15</BALANCE>
+        </VOUCHER>
+        <VOUCHER>
+          <DATE>2025-02-15</DATE>
+          <DESCRIPTION>POS Purchase</DESCRIPTION>
+          <AMOUNT(INR)>3,623.08</AMOUNT(INR)>
+          <BALANCE>39622.23</BALANCE>
+        </VOUCHER>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

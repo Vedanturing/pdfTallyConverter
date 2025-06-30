@@ -81,24 +81,18 @@ export default function ExportComponent() {
     const toastId = toast.loading(`Exporting as ${format.toUpperCase()} in ${languageOptions.find(l => l.code === selectedLanguage)?.name || 'English'}...`);
 
     try {
-      const response = await axios.post(
-        `${API_URL}/export/${fileId}/${format}`,
-        {
-          data,
-          clientName: 'export',
-          language: selectedLanguage, // Include language in request
-          localization: {
-            dateFormat: selectedLanguage === 'en' ? 'MM/DD/YYYY' : 'DD/MM/YYYY',
-            currency: '₹',
-            numberFormat: selectedLanguage === 'en' ? 'US' : 'IN'
-          }
-        },
+      const response = await axios.get(
+        `${API_URL}/api/download/${fileId}/${format}`,
         {
           responseType: 'blob',
           timeout: 30000, // 30 second timeout
           headers: {
-            'Content-Type': 'application/json',
-          },
+            'Accept': format === 'xlsx' 
+              ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+              : format === 'csv'
+              ? 'text/csv'
+              : 'application/xml'
+          }
         }
       );
 

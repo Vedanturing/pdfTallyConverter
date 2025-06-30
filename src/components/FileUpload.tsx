@@ -14,9 +14,10 @@ initPdfWorker();
 interface FilePreview {
   file: File;
   preview: string;
-  type: 'pdf' | 'image';
+  type: 'pdf' | 'image' | 'tally';
   numPages?: number;
   currentPage: number;
+  content?: string;
 }
 
 const FileUpload: React.FC = () => {
@@ -212,6 +213,22 @@ const FileUpload: React.FC = () => {
         type: 'image',
         currentPage: 1
       });
+    } else if (file.name.toLowerCase().endsWith('.xml') || file.name.toLowerCase().endsWith('.txt')) {
+      // Handle Tally XML and TXT files
+      try {
+        const text = await file.text();
+        setFilePreview({
+          file,
+          preview: '', // No visual preview for text files
+          type: 'tally',
+          currentPage: 1,
+          content: text.substring(0, 500) + (text.length > 500 ? '...' : '') // Show first 500 chars
+        });
+      } catch (error) {
+        console.error('Error reading file:', error);
+        toast.error('Error reading file content');
+        return;
+      }
     }
 
     // Start upload
@@ -222,7 +239,10 @@ const FileUpload: React.FC = () => {
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif']
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif'],
+      'text/xml': ['.xml'],
+      'application/xml': ['.xml'],
+      'text/plain': ['.txt']
     },
     disabled: isUploading,
     maxFiles: 1
@@ -299,7 +319,7 @@ const FileUpload: React.FC = () => {
             <>
               <p className="text-lg mb-2">Drag and drop your files here</p>
               <p className="text-sm">or click to select files</p>
-              <p className="text-xs mt-2">(PDF and image files only)</p>
+              <p className="text-xs mt-2">(PDF, Image, XML, and TXT files supported)</p>
             </>
           )}
         </div>
@@ -308,13 +328,27 @@ const FileUpload: React.FC = () => {
       {filePreview && !isUploading && (
         <div className="mt-8">
           <div className="bg-white rounded-lg shadow-lg p-4">
-            <div className="flex justify-center">
-              <img
-                src={filePreview.preview}
-                alt="File preview"
-                className="max-w-full max-h-[600px] object-contain"
-              />
-            </div>
+            {filePreview.type === 'tally' ? (
+              <div className="text-left">
+                <h3 className="text-lg font-semibold mb-4 text-center">
+                  Tally File Preview - {filePreview.file.name}
+                </h3>
+                <div className="bg-gray-50 p-4 rounded border font-mono text-sm overflow-auto max-h-96">
+                  <pre className="whitespace-pre-wrap">{filePreview.content}</pre>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  {filePreview.content?.length && filePreview.content.length > 500 ? 'Showing first 500 characters...' : ''}
+                </p>
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <img
+                  src={filePreview.preview}
+                  alt="File preview"
+                  className="max-w-full max-h-[600px] object-contain"
+                />
+              </div>
+            )}
           </div>
         </div>
       )}

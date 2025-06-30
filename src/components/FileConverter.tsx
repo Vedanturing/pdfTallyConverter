@@ -147,14 +147,14 @@ const FileConverter: React.FC = () => {
               <label className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-lg hover:from-indigo-600 hover:to-blue-600 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-xl">
                 <input
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,.xml,.txt,.png,.jpg,.jpeg"
                   onChange={handleFileChange}
                   className="sr-only"
                 />
                 Browse Files
               </label>
             </div>
-            <p className="text-xs text-gray-500">Supported format: PDF</p>
+            <p className="text-xs text-gray-500">Supported formats: PDF, XML, TXT, Images</p>
           </div>
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/30 to-blue-50/30 opacity-0 transition-opacity duration-300 pointer-events-none"></div>

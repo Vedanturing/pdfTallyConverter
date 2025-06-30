@@ -1,0 +1,82 @@
+{
+  "rows": [
+    {
+      "date": "2025-04-01",
+      "description": "ATM Withdrawal",
+      "Amount (INR)": "1,338.00",
+      "balance": 41338.0
+    },
+    {
+      "date": "2025-04-04",
+      "description": "Online Transfer",
+      "Amount (INR)": "3384.43",
+      "balance": 40953.57
+    },
+    {
+      "date": "2025-04-06",
+      "description": "EMI Payment",
+      "Amount (INR)": "4,905.87",
+      "balance": 45859.44
+    },
+    {
+      "date": "2025-04-09",
+      "description": "Salary",
+      "Amount (INR)": "Credit",
+      "balance": 4117.86
+    },
+    {
+      "date": "2025-04-10",
+      "description": "Utility Bill",
+      "Amount (INR)": "3,913.89",
+      "balance": 53891.19
+    },
+    {
+      "date": "2025-04-11",
+      "description": "Utility Bill",
+      "Amount (INR)": "5,376.63",
+      "balance": 59267.82
+    },
+    {
+      "date": "2025-04-12",
+      "description": "EMI Payment",
+      "Amount (INR)": "4,281.47",
+      "balance": 63549.29
+    },
+    {
+      "date": "2025-04-13",
+      "description": "Salary Credit",
+      "Amount (INR)": "523.05",
+      "balance": 64072.34
+    },
+    {
+      "date": "2025-04-15",
+      "description": "Utility Bill",
+      "Amount (INR)": "5,356.32",
+      "balance": 69428.66
+    },
+    {
+      "date": "2025-04-16",
+      "description": "Salary",
+      "Amount (INR)": "Credit",
+      "balance": 3520.76
+    },
+    {
+      "date": "2025-04-17",
+      "description": "Salary Credit",
+      "Amount (INR)": "1,948.19",
+      "balance": 74897.61
+    },
+    {
+      "date": "2025-04-20",
+      "description": "EMI Payment",
+      "Amount (INR)": "2,527.27",
+      "balance": 77424.88
+    }
+  ],
+  "headers": [
+    "date",
+    "description",
+    "Amount (INR)",
+    "balance"
+  ]
+}
